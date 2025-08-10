@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+  MANAGER
+}
+
+// Task status
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+// Project status
+enum ProjectStatus {
+  TODO
+  PENDING
+  DONE
+  DECISION
+  CANCELLED
+}
+
+// User model linked with Clerk authentication
+model User {
+  id            String    @id @default(uuid())
+  //clerkId       String    @unique
+  email         String    @unique
+  firstName     String
+  lastName      String
+  role          Role      @default(USER)
+  phoneNumber   String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  metadata      Json?     // For any additional Clerk user data
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  password      String
+  projects               Project[]    @relation("ProjectMembers")
+  assignedTasks          Task[]       @relation("TaskAssignees")
+  createdTasks           Task[]       @relation("TaskCreator")
+  timeEntries            TimeEntry[]
+  reports                Report[]
+  approvedTimeEntries    TimeEntry[]  @relation("TimeEntryApprover")
+  comments               Comment[]
+
+  //@@index([clerkId])
+  @@index([email])
+  @@map("users")
+}
+
+// Client organization
+model Client {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  email       String? @unique
+  website     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  contacts    Contact[]
+  projects    Project[]
+}
+
+// Client contacts
+model Contact {
+  id          String   @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  position    String?
+  isPrimary   Boolean  @default(false)
+  client      Client   @relation(fields: [clientId], references: [id])
+  clientId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Projects
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  code        String        @unique
+  status      ProjectStatus @default(TODO)
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  client      Client        @relation(fields: [clientId], references: [id])
+  clientId    String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  members     User[]        @relation("ProjectMembers")
+  tasks       Task[]
+  timeEntries TimeEntry[]
+  reports     Report[]
+}
+
+// Tasks
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Int        @default(2)
+  dueDate     DateTime?
+  //estimatedHours Float?
+  project     Project    @relation(fields: [projectId], references: [id])
+  projectId   String
+  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id])
+  createdById String
+  assignees   User[]     @relation("TaskAssignees")
+  parentTask  Task?      @relation("SubTasks", fields: [parentTaskId], references: [id])
+  parentTaskId String?
+  subTasks    Task[]     @relation("SubTasks")
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  timeEntries TimeEntry[]
+  comments    Comment[]
+}
+
+// Time tracking
+model TimeEntry {
+  id          String   @id @default(uuid())
+  date        DateTime
+  hours       Float
+  description String?
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  task        Task?    @relation(fields: [taskId], references: [id])
+  taskId      String?
+  project     Project  @relation(fields: [projectId], references: [id])
+  projectId   String
+  isBillable  Boolean  @default(true)
+  isApproved  Boolean  @default(false)
+  approvedBy  User?    @relation("TimeEntryApprover", fields: [approvedById], references: [id])
+  approvedById String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Comments on tasks
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  task      Task     @relation(fields: [taskId], references: [id])
+  taskId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Reports
+model Report {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String
+  content     Json
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById String
+  project     Project? @relation(fields: [projectId], references: [id])
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
