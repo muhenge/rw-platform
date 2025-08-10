@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { ClerkClient } from '@clerk/backend';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
@@ -19,7 +18,6 @@ export class AuthService {
   constructor(
     private readonly prisma: DatabaseService,
     private jwtService: JwtService,
-    @Inject('ClerkClient') private readonly clerkClient: ClerkClient,
     private readonly userService: UserService,
   ) {}
 

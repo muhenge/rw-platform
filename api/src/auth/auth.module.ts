@@ -9,7 +9,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { DatabaseService } from 'src/database/database.service';
-import { ClerkStrategy } from './clerk.strategy';
 import { ClerkClientProvider } from 'providers/clerk-client.provider';
 
 @Module({
@@ -37,7 +36,6 @@ import { ClerkClientProvider } from 'providers/clerk-client.provider';
     JwtStrategy,
     JwtGuard,
     DatabaseService,
-    ClerkStrategy,
     ClerkClientProvider,
     {
       provide: APP_GUARD,
