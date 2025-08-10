@@ -43,30 +43,30 @@ async function main() {
   }
 
   // ===== Seed Users (Members) =====
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+  const passwordHash = await bcrypt.hash('Admin@2347', 10);
 
   const users = [
     {
-      email: 'admin@example.com',
-      firstName: 'Admin',
-      lastName: 'User',
-      role: Role.USER,
+      email: 'hesel_adv@admin.com',
+      firstName: 'Hesel administrator',
+      lastName: '',
+      role: Role.ADMIN,
       password: passwordHash,
     },
-    {
-      email: 'manager@example.com',
-      firstName: 'Manager',
-      lastName: 'User',
-      role: Role.USER,
-      password: passwordHash,
-    },
-    {
-      email: 'user@example.com',
-      firstName: 'Regular',
-      lastName: 'User',
-      role: Role.USER,
-      password: passwordHash,
-    },
+    // {
+    //   email: 'manager@example.com',
+    //   firstName: 'Manager',
+    //   lastName: 'User',
+    //   role: Role.USER,
+    //   password: passwordHash,
+    // },
+    // {
+    //   email: 'user@example.com',
+    //   firstName: 'Regular',
+    //   lastName: 'User',
+    //   role: Role.USER,
+    //   password: passwordHash,
+    // },
   ];
 
   for (const user of users) {
