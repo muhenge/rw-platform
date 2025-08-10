@@ -377,18 +377,20 @@ export function ProjectForm({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {mode === 'create' ? (
+      {mode === 'create' ? (
+        <DialogTrigger asChild>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>
-        ) : (
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 px-2">
             <Pencil className="h-4 w-4" />
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>

@@ -1,5 +1,5 @@
 // app/dashboard/projects/page.tsx
-import { ProjectForm } from './components/ProjectForm';
+import { ProjectForm } from '../components/ProjectForm';
 import { apiClient } from '@/lib/axiosInstance';
 
 export default async function ProjectsPage() {

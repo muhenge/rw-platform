@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
 import { useState, useMemo } from "react";
-import { Loader2, CheckCircle, Clock, AlertCircle, Check, X, AlertTriangle, ChevronLeft, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle, Clock, AlertCircle, Check, X, AlertTriangle, ChevronLeft, MoreVertical, Plus, Trash2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, isToday, isTomorrow, isPast, isThisWeek, isThisMonth } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -166,16 +166,41 @@ const TaskCard = ({ task, onTaskClick, onStatusChange }: SortableTaskProps) => {
           "absolute right-2 top-2 flex items-center space-x-1 transition-opacity duration-150",
           isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskClick(task);
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            Edit
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-700"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTaskClick(task);
+                }}
+                className="text-sm"
+              >
+                <Pencil className="h-3.5 w-3.5 mr-2 text-blue-500" />
+                Edit Task
+              </DropdownMenuItem>
               {statusOptions.map((opt) => (
                 <DropdownMenuItem
                   key={opt.value}
@@ -190,7 +215,10 @@ const TaskCard = ({ task, onTaskClick, onStatusChange }: SortableTaskProps) => {
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-sm text-red-600 dark:text-red-400">
+              <DropdownMenuItem
+                className="text-sm text-red-600 dark:text-red-400"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Trash2 className="h-3.5 w-3.5 mr-2" />
                 Delete Task
               </DropdownMenuItem>
