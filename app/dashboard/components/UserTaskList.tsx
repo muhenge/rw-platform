@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
 import { useState, useMemo } from "react";
-import { Loader2, CheckCircle, Clock, AlertCircle, Check, X, AlertTriangle, ChevronLeft, MoreVertical, Plus, Trash2, Pencil } from "lucide-react";
+import { Loader2, CheckCircle, Clock, AlertCircle, Check, X, AlertTriangle, ChevronLeft, MoreVertical, Plus, Trash2, Pencil, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, isToday, isTomorrow, isPast, isThisWeek, isThisMonth } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,19 @@ type Task = {
   dueDate: string;
   assignees: Array<{ id: string; firstName?: string; email: string; avatar?: string }>;
   labels?: string[];
+};
+
+type Comment = {
+  id: string;
+  content: string;
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 };
 
 const statusOptions = [
@@ -65,6 +78,58 @@ type SortableTaskProps = {
 const TaskCard = ({ task, onTaskClick, onStatusChange }: SortableTaskProps) => {
   const status = statusOptions.find(s => s.value === task.status) || statusOptions[0];
   const [isHovered, setIsHovered] = useState(false);
+  const [comment, setComment] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Fetch comments for the task
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery<Comment[]>({
+    queryKey: ['task-comments', task.id],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/post/tasks/${task.id}/comments`);
+      return data || [];
+    },
+  });
+
+  // Add comment mutation
+  const addComment = useMutation({
+    mutationFn: async (content: string) => {
+      const { data } = await apiClient.post('/post/comments', {
+        content,
+        taskId: task.id,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      setComment('');
+      queryClient.invalidateQueries({ queryKey: ['task-comments', task.id] });
+      toast.success('Comment added successfully');
+    },
+    onError: () => {
+      toast.error('Failed to add comment');
+    }
+  });
+
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (comment.trim()) {
+      addComment.mutate(comment.trim());
+    }
+  };
+
+  // Format date to relative time (e.g., "2 hours ago")
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (isToday(date)) return format(date, 'h:mm a');
+    if (isThisWeek(date)) return format(date, 'EEEE');
+    return format(date, 'MMM d, yyyy');
+  };
 
   return (
     <div
@@ -72,158 +137,166 @@ const TaskCard = ({ task, onTaskClick, onStatusChange }: SortableTaskProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "group relative bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700",
-        "hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing",
+        "group relative bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700",
+        "hover:shadow-md transition-all duration-200 cursor-pointer",
         "hover:ring-2 hover:ring-offset-2 hover:ring-blue-500/20",
         "dark:shadow-gray-900/10 dark:hover:shadow-gray-900/20"
       )}
     >
-      {/* Status indicator dot */}
-      <div className="absolute top-3 right-3">
-        <div
+      {/* Status Badge */}
+      <div className="absolute top-4 right-4">
+        <Badge
+          variant="outline"
           className={cn(
-            "h-2.5 w-2.5 rounded-full transition-all duration-200",
-            {
-              'bg-gray-400': status.value === 'TODO',
-              'bg-blue-500': status.value === 'IN_PROGRESS',
-              'bg-yellow-500': status.value === 'REVIEW',
-              'bg-green-500': status.value === 'DONE',
-            }
+            "px-3 py-1 text-xs font-medium rounded-full",
+            status.color,
+            status.bgColor
           )}
-        />
+        >
+          {status.label}
+        </Badge>
       </div>
 
-      <div className="pr-4">
-        <h3 className="font-medium text-gray-900 dark:text-white text-sm leading-snug line-clamp-2 mb-2">
-          {task.title}
-        </h3>
+      <div className="space-y-4">
+        {/* Task Header */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 pr-8">
+            {task.title}
+          </h3>
+          {task.description && (
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              {task.description}
+            </p>
+          )}
+        </div>
 
+        {/* Due Date */}
         {task.dueDate && (
-          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-3">
-            <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-            <span className={cn(
-              "truncate",
-              {
-                'text-red-500 dark:text-red-400':
-                  isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate)),
-                'text-amber-500 dark:text-amber-400':
-                  isToday(new Date(task.dueDate)),
-              }
-            )}>
-              {getDueDateLabel(task.dueDate)}
-            </span>
-          </div>
-        )}
-
-        {(task.assignees?.length > 0 || task.labels?.length > 0) && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-            {task.assignees?.length > 0 && (
-              <div className="flex -space-x-1.5">
-                {task.assignees.slice(0, 3).map((assignee) => (
-                  <div
-                    key={assignee.id}
-                    className={cn(
-                      "h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium",
-                      "border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700",
-                      "text-gray-600 dark:text-gray-300"
-                    )}
-                    title={assignee.firstName || assignee.email}
-                  >
-                    {assignee.firstName?.[0]?.toUpperCase() || assignee.email[0]?.toUpperCase()}
-                  </div>
-                ))}
-                {task.assignees.length > 3 && (
-                  <div className="h-6 px-1.5 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
-                    +{task.assignees.length - 3}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {task.labels?.length > 0 && (
-              <div className="flex flex-wrap gap-1 ml-auto">
-                {task.labels.slice(0, 2).map((label, idx) => (
-                  <span
-                    key={idx}
-                    className="px-1.5 py-0.5 text-[10px] rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 truncate max-w-[80px]"
-                    title={label}
-                  >
-                    {label}
-                  </span>
-                ))}
-                {task.labels.length > 2 && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    +{task.labels.length - 2}
-                  </span>
-                )}
-              </div>
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>{getDueDateLabel(task.dueDate)}</span>
+            {isPast(new Date(task.dueDate)) && task.status !== 'DONE' && (
+              <span className="ml-2 text-red-500 text-xs font-medium">
+                Overdue
+              </span>
             )}
           </div>
         )}
 
-        {/* Quick actions that appear on hover */}
-        <div className={cn(
-          "absolute right-2 top-2 flex items-center space-x-1 transition-opacity duration-150",
-          isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTaskClick(task);
-            }}
-          >
-            <Pencil className="h-3.5 w-3.5 mr-1" />
-            Edit
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-700"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTaskClick(task);
-                }}
-                className="text-sm"
-              >
-                <Pencil className="h-3.5 w-3.5 mr-2 text-blue-500" />
-                Edit Task
-              </DropdownMenuItem>
-              {statusOptions.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStatusChange(task.id, opt.value);
-                  }}
-                  className="text-sm"
+        {/* Assignees */}
+        {task.assignees.length > 0 && (
+          <div className="mt-2">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Assigned to:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {task.assignees.map((assignee) => (
+                <div
+                  key={assignee.id}
+                  className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1 text-xs"
                 >
-                  <opt.icon className={`h-3.5 w-3.5 mr-2 ${opt.color}`} />
-                  Mark as {opt.label}
-                </DropdownMenuItem>
+                  <span className="text-gray-700 dark:text-gray-200">
+                    {assignee.firstName || assignee.email.split('@')[0]}
+                  </span>
+                </div>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-sm text-red-600 dark:text-red-400"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                Delete Task
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          </div>
+        )}
+
+        {/* Comments Section */}
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Comments ({comments.length})
+            </h4>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
+              className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+            >
+              {showComments ? 'Hide' : 'Show'}
+              <ChevronDown className={`h-4 w-4 transition-transform ${showComments ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {showComments && (
+            <div className="mt-3 space-y-4">
+              {/* Comment List */}
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2 -mr-2">
+                {isLoadingComments ? (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : comments.length > 0 ? (
+                  comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="group relative bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-300 font-medium text-sm">
+                          {comment.user.firstName?.[0]?.toUpperCase() || comment.user.email[0]?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {comment.user.firstName || comment.user.email.split('@')[0]}
+                            </p>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatRelativeTime(comment.createdAt)}
+                              {comment.createdAt !== comment.updatedAt && ' (edited)'}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                            {comment.content}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Add Comment Form */}
+              <form onSubmit={handleCommentSubmit} className="mt-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="block w-full px-4 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-24"
+                    onClick={(e) => e.stopPropagation()}
+                    disabled={addComment.isPending}
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!comment.trim() || addComment.isPending}
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-4 text-sm"
+                  >
+                    {addComment.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Posting...
+                      </>
+                    ) : 'Comment'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>

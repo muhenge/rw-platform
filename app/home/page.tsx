@@ -20,6 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown, MessageSquare } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Table, TableHeader, TableHead, TableBody, TableRow } from "@/components/ui/table";
 
 type Project = {
   id: string;
@@ -75,6 +79,18 @@ type Project = {
       lastName: string;
       email: string;
     };
+    _count?: {
+      comments: number;
+    };
+    comments?: Array<{
+      id: string;
+      content: string;
+      user: {
+        firstName: string;
+        lastName: string;
+      };
+      createdAt: string;
+    }>;
   }>;
 };
 
@@ -126,8 +142,10 @@ export default function HomePage() {
     keepPreviousData: true,
   });
 
+
   const projects = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
+
 
   // Filter projects based on search term and status
   const filteredProjects = useMemo(() => {
@@ -161,6 +179,8 @@ export default function HomePage() {
     );
   }
 
+
+  console.log('project ----->', projects)
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -209,135 +229,191 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Project
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Progress
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tasks
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Team
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
-                  <tr key={project.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{project.name}</div>
-                          <div className="text-sm text-gray-500">{project.code}</div>
-                        </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader className="bg-gray-100 dark:bg-gray-800">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[300px] font-medium text-gray-900 dark:text-gray-100">Project</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Client</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Status</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Progress</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Tasks</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Comments</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project) => (
+                <TableRow
+                  key={project.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-gray-100 sm:pl-6">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <span className="text-blue-600 dark:text-blue-300 font-medium">
+                          {project.name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{project.client?.name || '—'}</div>
-                      <div className="text-sm text-gray-500">{project.client?.email || ''}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge
-                        variant={project.status === 'DONE' ? 'default' : 'outline'}
-                        className={cn(
-                          project.status === 'TODO' ? 'bg-yellow-100 text-yellow-800' : '',
-                          project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' : '',
-                          project.status === 'DONE' ? 'bg-green-100 text-green-800' : '',
-                          project.status === 'REVIEW' ? 'bg-purple-100 text-purple-800' : '',
-                          project.status === 'CANCELLED' ? 'bg-red-100 text-red-800' : ''
-                        )}
-                      >
-                        {project.status === 'IN_PROGRESS' ? 'In Progress' :
-                          project.status === 'TODO' ? 'To Do' :
-                            project.status.charAt(0) + project.status.slice(1).toLowerCase().replace('_', ' ')}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div className="ml-4">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{project.name}</div>
+                        <div className="text-gray-500 dark:text-gray-400">{project.code}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    {project.client?.name || 'No client'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4">
+                    <Badge
+                      variant={project.status === 'COMPLETED' ? 'success' : 'outline'}
+                      className={cn(
+                        'capitalize',
+                        project.status === 'IN_PROGRESS' && 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                        project.status === 'TODO' && 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                        project.status === 'COMPLETED' && 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+                        project.status === 'ON_HOLD' && 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+                        project.status === 'CANCELLED' && 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                      )}
+                    >
+                      {project.status.replace('_', ' ').toLowerCase()}
+                    </Badge>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-20 rounded-full bg-gray-200 dark:bg-gray-700">
                         <div
-                          className="h-2.5 rounded-full"
-                          style={{
-                            width: `${project.progress}%`,
-                            backgroundColor:
-                              project.progress < 30 ? '#ef4444' :
-                                project.progress < 70 ? '#f59e0b' : '#10b981'
-                          }}
+                          className="h-full rounded-full bg-blue-600 dark:bg-blue-500"
+                          style={{ width: `${project.progress}%` }}
                         />
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">{Math.round(project.progress)}%</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {project.completedTasks} / {project.totalTasks}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {project.pendingTasks} pending
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {project.members.length} members
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(project.updatedAt), 'MMM d, yyyy')}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No projects found matching your criteria.
+                      <span className="text-sm text-gray-600 dark:text-gray-300">{project.progress}%</span>
+                    </div>
                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {project.completedTasks} / {project.totalTasks}
+                      </span>
+                      <span className="text-gray-400 dark:text-gray-500">•</span>
+                      <span className="text-green-600 dark:text-green-400">
+                        {project.completedTasks === 0 ? 0 : Math.round((project.completedTasks / project.totalTasks) * 100)}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="flex items-center gap-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+                          <MessageSquare className="h-4 w-4" />
+                          {project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)}
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-96 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                      >
+                        <div className="p-2">
+                          <h4 className="text-sm font-medium mb-2">
+                            Latest Comments ({project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)})
+                          </h4>
+                          <div className="space-y-3">
+                            {project.tasks.flatMap(task => {
+                              // Get the latest comment (first in the array since they're ordered by createdAt desc)
+                              const latestComment = task.comments?.[0];
+                              if (!latestComment) return null;
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-          <div className="text-sm text-muted-foreground">
-            Showing <span className="font-medium">
-              {filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}
-            </span> to{' '}
-            <span className="font-medium">
-              {Math.min(page * limit, filteredProjects.length)}
-            </span>{' '}
-            of <span className="font-medium">{filteredProjects.length}</span> projects
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((old) => Math.max(old - 1, 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((old) => old + 1)}
-              disabled={page >= meta.totalPages}
-            >
-              Next <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
+                              return (
+                                <div key={`${task.id}-${latestComment.id}`} className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                  <div className="flex items-start gap-2">
+                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                      <AvatarImage
+                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${latestComment.user.firstName}+${latestComment.user.lastName}`}
+                                      />
+                                      <AvatarFallback>
+                                        {latestComment.user.firstName?.[0]}{latestComment.user.lastName?.[0]}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-baseline justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-sm font-medium">
+                                            {latestComment.user.firstName} {latestComment.user.lastName}
+                                          </p>
+                                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            {format(new Date(latestComment.createdAt), 'MMM d, yyyy')}
+                                          </span>
+                                        </div>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
+                                          {task.title || 'Untitled Task'}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 break-words">
+                                        {latestComment.content}
+                                      </p>
+                                      {task.comments.length > 1 && (
+                                        <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                                          +{task.comments.length - 1} more comment{task.comments.length > 2 ? 's' : ''}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {project.tasks.every(task => !task.comments?.length) && (
+                              <div className="text-center py-4">
+                                <MessageSquare className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500" />
+                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No comments yet</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add a comment to get started</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  No projects found matching your criteria.
+                </td>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="text-sm text-muted-foreground">
+          Showing <span className="font-medium">
+            {filteredProjects.length > 0 ? (page - 1) * limit + 1 : 0}
+          </span> to{' '}
+          <span className="font-medium">
+            {Math.min(page * limit, filteredProjects.length)}
+          </span>{' '}
+          of <span className="font-medium">{filteredProjects.length}</span> projects
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((old) => Math.max(old - 1, 1))}
+            disabled={page === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((old) => old + 1)}
+            disabled={page >= meta.totalPages}
+          >
+            Next <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       </div>
     </div>

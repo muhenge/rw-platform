@@ -606,6 +606,21 @@ export class PostService {
                 email: true,
               },
             },
+            comments: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
           },
           orderBy: {
             dueDate: 'asc',
@@ -668,5 +683,182 @@ export class PostService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // Comment methods
+  async createComment(userId: string, taskId: string, content: string) {
+    // Verify task exists
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Verify user has access to the task
+    const hasAccess = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        OR: [
+          { project: { members: { some: { id: userId } } } },
+          { assignees: { some: { id: userId } } },
+        ],
+      },
+    });
+
+    if (!hasAccess) {
+      throw new ForbiddenException(
+        'You do not have permission to comment on this task',
+      );
+    }
+
+    return this.prisma.comment.create({
+      data: {
+        content,
+        task: { connect: { id: taskId } },
+        user: { connect: { id: userId } },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getTaskComments(userId: string, taskId: string) {
+    // Verify task exists and user has access
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        OR: [
+          { project: { members: { some: { id: userId } } } },
+          { assignees: { some: { id: userId } } },
+        ],
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found or access denied');
+    }
+
+    return this.prisma.comment.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateComment(userId: string, commentId: string, content: string) {
+    // Find the comment and verify ownership
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      include: {
+        task: {
+          select: {
+            project: {
+              select: {
+                members: {
+                  where: { id: userId },
+                },
+              },
+            },
+            assignees: {
+              where: { id: userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // Only the comment creator, project admin, or task assignee can update
+    const canUpdate =
+      comment.userId === userId ||
+      comment.task.project.members.length > 0 ||
+      comment.task.assignees.length > 0;
+
+    if (!canUpdate) {
+      throw new ForbiddenException(
+        'You do not have permission to update this comment',
+      );
+    }
+
+    return this.prisma.comment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteComment(userId: string, commentId: string) {
+    // Find the comment and verify ownership/access
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      include: {
+        user: true,
+        task: {
+          select: {
+            project: {
+              select: {
+                members: {
+                  where: { id: userId },
+                },
+              },
+            },
+            assignees: {
+              where: { id: userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // Only the comment creator, project admin, or task assignee can delete
+    const canDelete =
+      comment.userId === userId ||
+      comment.task.project.members.length > 0 ||
+      comment.task.assignees.length > 0;
+
+    if (!canDelete) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this comment',
+      );
+    }
+
+    return this.prisma.comment.delete({
+      where: { id: commentId },
+    });
   }
 }

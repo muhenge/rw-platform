@@ -207,4 +207,54 @@ export class PostController {
   async deleteTask(@GetAuthUser() user: User, @Param('taskId') taskId: string) {
     return this.postService.deleteTask(user.id, taskId);
   }
+
+  // Comment endpoints
+  @UseGuards(JwtGuard)
+  @Post('comments')
+  async createComment(
+    @GetAuthUser() user: User,
+    @Body() data: { taskId: string; content: string },
+  ) {
+    if (!data.taskId || !data.content) {
+      throw new BadRequestException('Task ID and content are required');
+    }
+    return this.postService.createComment(user.id, data.taskId, data.content);
+  }
+
+  @UseGuards(JwtGuard)
+  @Get('tasks/:taskId/comments')
+  async getTaskComments(
+    @GetAuthUser() user: User,
+    @Param('taskId') taskId: string,
+  ) {
+    if (!taskId) {
+      throw new BadRequestException('Task ID is required');
+    }
+    return this.postService.getTaskComments(user.id, taskId);
+  }
+
+  @UseGuards(JwtGuard)
+  @Patch('comments/:commentId')
+  async updateComment(
+    @GetAuthUser() user: User,
+    @Param('commentId') commentId: string,
+    @Body() data: { content: string },
+  ) {
+    if (!commentId || !data?.content) {
+      throw new BadRequestException('Comment ID and content are required');
+    }
+    return this.postService.updateComment(user.id, commentId, data.content);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete('comments/:commentId')
+  async deleteComment(
+    @GetAuthUser() user: User,
+    @Param('commentId') commentId: string,
+  ) {
+    if (!commentId) {
+      throw new BadRequestException('Comment ID is required');
+    }
+    return this.postService.deleteComment(user.id, commentId);
+  }
 }
