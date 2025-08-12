@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Your App Name",
-  description: "Your app description",
+  title: "Hesed Advocates | Event Management",
+  description: "This is https://hesedadvocates.com/ event management platform",
 };
 
 export default function RootLayout({
