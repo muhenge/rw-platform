@@ -44,5 +44,5 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
 };
 
 export const apiClient = createAxiosInstance(
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3005/api"
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://events.hesedadvocates.com/api"
 );
