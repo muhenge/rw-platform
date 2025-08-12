@@ -241,7 +241,8 @@ export default function UserTaskList({
   // Handle task selection
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
-    onTaskSelect(task);
+    // Pass the task with its comments to the parent
+    onTaskSelect({ ...task, comments: task.comments || [] });
   };
 
   // Fetch tasks for the project
@@ -275,11 +276,23 @@ export default function UserTaskList({
     queryKey: ['task-comments', selectedTask?.id],
     queryFn: async () => {
       if (!selectedTask) return [];
+      console.log('Fetching comments for task:', selectedTask.id);
       const { data } = await apiClient.get(`/post/tasks/${selectedTask.id}/comments`);
+      console.log('Comments API response:', data);
       return data || [];
     },
     enabled: !!selectedTask?.id,
+    onSuccess: (comments) => {
+      console.log('Comments loaded:', comments);
+      // When comments are loaded, update the selected task with comments
+      if (selectedTask) {
+        console.log('Updating task with comments:', { taskId: selectedTask.id, comments });
+        onTaskSelect({ ...selectedTask, comments });
+      }
+    },
   });
+
+  console.log(comments)
 
   // Update task status
   const updateTaskStatus = useMutation({

@@ -1,22 +1,17 @@
-import axios from "axios";
 import { redirect } from "next/navigation";
+import { apiClient } from "@/lib/axiosInstance";
+
 export async function fetchUserWithRole(token: string) {
   try {
-    const res = await axios.get("http://localhost:3005/api/user/me", {
+    const response = await apiClient.get("/user/me", {
       headers: {
-        Authorization: `Bearer ${}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${token}`,
       },
-      timeout: 10000,
     });
-
-    return res.data;
+    return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      redirect('/signup')
-    } else {
-      console.error("Unexpected error:", error);
-    }
+    console.error("Error fetching user with role:", error);
+    redirect('/signin');
     return null;
   }
 }

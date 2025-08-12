@@ -25,6 +25,16 @@ type Project = {
     status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
     dueDate?: string;
     assignees: Array<{ id: string; firstName?: string; email: string }>;
+    comments?: Array<{
+      id: string;
+      content: string;
+      user: {
+        id: string;
+        firstName: string | null;
+        email: string;
+      };
+      createdAt: string;
+    }>;
   }>;
 };
 
@@ -124,6 +134,36 @@ export default function UserDashboard() {
     }
   };
 
+
+  const handleTaskSelect = (task: any) => {
+    console.log('Task selected in UserDashboard:', {
+      taskId: task.id,
+      hasComments: !!task.comments,
+      commentCount: task.comments?.length || 0
+    }
+
+  );
+
+    setSelectedTask(prev => {
+      const updatedTask = {
+        ...task,
+        // Preserve existing comments if the task is the same and has comments
+        comments: task.comments || (prev?.id === task.id ? prev.comments : [])
+      };
+      console.log('Updated task with comments:', updatedTask);
+      return updatedTask;
+    });
+    setShowTaskDetails(true);
+  };
+
+  useEffect(() => {
+    console.log('Selected task updated:', {
+      taskId: selectedTask?.id,
+      hasComments: !!selectedTask?.comments,
+      commentCount: selectedTask?.comments?.length || 0
+    });
+  }, [selectedTask]);
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -136,6 +176,7 @@ export default function UserDashboard() {
       </div>
     );
   }
+
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
@@ -180,11 +221,7 @@ export default function UserDashboard() {
               ) : projects.length > 0 ? (
                 <UserTaskList
                   projectId={selectedProject?.id || ''}
-                  onTaskSelect={(task) => {
-                    console.log('Task selected:', task); // Debug log
-                    setSelectedTask(task);
-                    setShowTaskDetails(true);
-                  }}
+                  onTaskSelect={handleTaskSelect}
                   selectedTaskId={selectedTask?.id}
                   key={selectedProject?.id} // Add key to force re-render when project changes
                 />
@@ -237,14 +274,14 @@ export default function UserDashboard() {
                       </form>
 
                       <div className="space-y-4 mt-4">
-                        {selectedTask.comments?.length > 0 ? (
-                          selectedTask.comments.map((comment: any) => (
+                        {selectedTask.comments && selectedTask.comments.length > 0 ? (
+                          selectedTask.comments.map((comment) => (
                             <div key={comment.id} className="flex gap-3">
-                              <Avatar className="h-8 w-8 mt-1">
+                              {/* <Avatar className="h-8 w-8 mt-1">
                                 <AvatarFallback>
                                   {comment.user?.firstName?.[0] || comment.user?.email?.[0]}
                                 </AvatarFallback>
-                              </Avatar>
+                              </Avatar> */}
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium text-sm">

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ThemeToggle from "@/lib/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,17 +103,18 @@ export default function Navbar() {
           </Link>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/avatars/default.png" alt={user?.firstName} />
-                  <AvatarFallback className="bg-[#f6b93b] text-[#0a3d62] font-medium">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  <AvatarImage src={user?.avatar} alt={user?.firstName || "User"} />
+                  <AvatarFallback>
+                    {user?.firstName?.[0] || <UserIcon className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
-                <span className="ml-2 hidden md:inline">{user?.firstName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -127,19 +129,9 @@ export default function Navbar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                {/* <Link href="/profile" className="w-full cursor-pointer">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  Profile
-                </Link> */}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-              >
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -189,8 +189,6 @@ export default function HomePage() {
     keepPreviousData: true,
   });
 
-  console.log('statuses ------->', response)
-
 
   const projects = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
