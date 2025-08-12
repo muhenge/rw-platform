@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
-import { LayoutDashboard, Folder, FileArchive } from "lucide-react";
+import { LayoutDashboard, Folder, FileArchive, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { ProjectForm } from "./ProjectForm";
@@ -40,16 +40,28 @@ export default function AdminDashboard({ user }: { user: any }) {
     queryKey: ['admin-projects'],
     queryFn: async () => {
       const { data } = await apiClient.get("/post/projects/all");
-      return data;
+      // Ensure we're working with an array
+      return Array.isArray(data) ? data : [];
     },
   });
 
   // Calculate stats based on projects data
   const calculateStats = (): Stats[] => {
+    // Add a null check for projects
+    if (!Array.isArray(projects)) {
+      return [
+        { name: "Total Projects", value: 0, trend: 'neutral' },
+        { name: "Active Projects", value: 0, trend: 'neutral' },
+        { name: "Completed Projects", value: 0, trend: 'neutral' },
+        { name: "Upcoming Deadlines", value: 0, trend: 'neutral' },
+      ];
+    }
+
     const totalProjects = projects.length;
     const activeProjects = projects.filter(p => p.status === 'active').length;
     const completedProjects = projects.filter(p => p.status === 'completed').length;
     const upcomingDeadlines = projects.filter(p =>
+      p.dueDate &&
       new Date(p.dueDate) > new Date() &&
       new Date(p.dueDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     ).length;
@@ -63,9 +75,11 @@ export default function AdminDashboard({ user }: { user: any }) {
   };
 
   // Get recent activity (last 5 updated projects)
-  const recentActivity = [...projects]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
+  const recentActivity = Array.isArray(projects)
+    ? [...projects]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5)
+    : [];
 
   return (
     <ProtectedRoute>
@@ -109,7 +123,7 @@ export default function AdminDashboard({ user }: { user: any }) {
                 >
                   <Folder className="h-4 w-4" /> Projects
                 </TabsTrigger>
-                <TabsTrigger
+                {/* <TabsTrigger
                   value="team"
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white"
                 >
@@ -120,7 +134,7 @@ export default function AdminDashboard({ user }: { user: any }) {
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white"
                 >
                   <FileArchive className="h-4 w-4" /> Files
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
             </div>
 
