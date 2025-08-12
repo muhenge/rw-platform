@@ -182,8 +182,6 @@ const TaskCard = ({
               </p>
             )}
           </div>
-
-          {/* Comment button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -227,7 +225,15 @@ const TaskCard = ({
   );
 };
 
-export default function UserTaskList({ projectId, onTaskSelect }: { projectId: string; onTaskSelect: (task: Task) => void }) {
+export default function UserTaskList({
+  projectId,
+  onTaskSelect,
+  selectedTaskId
+}: {
+  projectId: string;
+  onTaskSelect: (task: Task) => void;
+  selectedTaskId?: string;
+}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -246,6 +252,22 @@ export default function UserTaskList({ projectId, onTaskSelect }: { projectId: s
       return data.data || [];
     },
     enabled: !!projectId && !!user?.id,
+    onSuccess: (tasks) => {
+      // If there's a selectedTaskId and we have tasks, find and select it
+      if (selectedTaskId && tasks.length > 0) {
+        const taskToSelect = tasks.find((task: Task) => task.id === selectedTaskId);
+        if (taskToSelect) {
+          console.log('Auto-selecting task:', taskToSelect);
+          setSelectedTask(taskToSelect);
+          onTaskSelect(taskToSelect);
+        }
+      } else if (tasks.length > 0 && !selectedTask) {
+        // If no task is selected but we have tasks, select the first one
+        console.log('Auto-selecting first task:', tasks[0]);
+        setSelectedTask(tasks[0]);
+        onTaskSelect(tasks[0]);
+      }
+    },
   });
 
   // Fetch comments for the selected task
@@ -317,7 +339,7 @@ export default function UserTaskList({ projectId, onTaskSelect }: { projectId: s
           <CheckCircle className="h-8 w-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-1">No tasks yet</h3>
-        <p className="text-sm text-gray-500">Get started by creating a new task</p>
+        <p className="text-sm text-gray-500">No task to display, or select a project</p>
       </div>
     );
   }

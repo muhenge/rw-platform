@@ -1,7 +1,7 @@
 // app/home/page.tsx
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -104,9 +104,47 @@ type ApiResponse = {
   };
 };
 
+const getStatusPercentage = (status: string): number => {
+  switch (status) {
+    case 'TODO':
+      return 0;
+    case 'IN_PROGRESS':
+      return 33;
+    case 'REVIEW':
+      return 66;
+    case 'DONE':
+    case 'COMPLETED':
+      return 100;
+    case 'CANCELLED':
+      return 0;
+    default:
+      return 0;
+  }
+};
+
+const calculateProjectProgress = (tasks: any[] = []) => {
+  if (!tasks.length) return 0;
+
+  const statusWeights: Record<string, number> = {
+    'TODO': 0,
+    'IN_PROGRESS': 0.33,
+    'REVIEW': 0.66,
+    'DONE': 1,
+    'COMPLETED': 1,
+    'CANCELLED': 0
+  };
+
+  const totalWeight = tasks.reduce((sum, task) => {
+    return sum + (statusWeights[task.status] || 0);
+  }, 0);
+
+  return Math.round((totalWeight / tasks.length) * 100);
+};
+
 export default function HomePage() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -118,6 +156,15 @@ export default function HomePage() {
       router.push(`/signin?redirect=${encodeURIComponent('/home')}`);
     }
   }, [isAuthenticated, isAuthLoading, router]);
+
+  // Subscribe to task updates
+  useEffect(() => {
+    const channel = new BroadcastChannel('task-updates');
+    channel.onmessage = () => {
+      queryClient.invalidateQueries({ queryKey: ['projects-with-progress'] });
+    };
+    return () => channel.close();
+  }, [queryClient]);
 
   const { data: response, isLoading } = useQuery<ApiResponse>({
     queryKey: ['projects-with-progress', { page }],
@@ -141,6 +188,8 @@ export default function HomePage() {
     enabled: isAuthenticated,
     keepPreviousData: true,
   });
+
+  console.log('statuses ------->', response)
 
 
   const projects = response?.data || [];
@@ -291,13 +340,27 @@ export default function HomePage() {
                   </td>
                   <td className="whitespace-nowrap px-3 py-4">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-20 rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div className="h-2 w-20 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-blue-600 dark:bg-blue-500"
-                          style={{ width: `${project.progress}%` }}
+                          className={cn(
+                            'h-full rounded-full transition-all duration-500',
+                            project.tasks?.some((t: any) => t.status === 'DONE' || t.status === 'COMPLETED')
+                              ? 'bg-green-500'
+                              : project.tasks?.some((t: any) => t.status === 'REVIEW')
+                                ? 'bg-purple-500'
+                                : project.tasks?.some((t: any) => t.status === 'IN_PROGRESS')
+                                  ? 'bg-blue-500'
+                                  : 'bg-gray-400'
+                          )}
+                          style={{
+                            width: `${calculateProjectProgress(project.tasks)}%`,
+                            transition: 'width 0.5s ease-in-out, background-color 0.3s ease-in-out'
+                          }}
                         />
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">{project.progress}%</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300 w-10">
+                        {calculateProjectProgress(project.tasks)}%
+                      </span>
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
 import { useAuth } from "@/context/AuthContext";
@@ -44,27 +44,70 @@ export default function UserDashboard() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [comment, setComment] = useState('');
+  const [showTaskDetails, setShowTaskDetails] = useState(true);
 
-  // Fetch user's projects
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['user-projects', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await apiClient.get(`/post/users/${user.id}/projects`);
-      // The endpoint returns { data: Project[], meta: { count: number } }
-      return data?.data || [];
-    },
-    onSuccess: (data) => {
-      if (data.length > 0 && !selectedProject) {
-        setSelectedProject(data[0]);
+      try {
+        const { data } = await apiClient.get(`/post/users/${user.id}/projects?include=tasks&include=comments`);
+        console.log('Fetched projects:', data?.data);
+        return data?.data || [];
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        return [];
       }
     },
+    onSuccess: (projectsData) => {
+      console.log('Projects loaded:', projectsData);
+
+      if (!projectsData || projectsData.length === 0) {
+        console.log('No projects available');
+        return;
+      }
+
+      try {
+        // Create a deep copy to avoid mutating the original data
+        const sortedProjects = JSON.parse(JSON.stringify(projectsData));
+
+        // Sort projects by updatedAt (newest first)
+        sortedProjects.sort((a: Project, b: Project) =>
+          new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+        );
+
+        const latestProject = sortedProjects[0];
+        console.log('Latest project selected:', latestProject);
+
+        // First, set the selected project
+        setSelectedProject(latestProject);
+
+        // Then, in the next render cycle, handle the task selection
+        setTimeout(() => {
+          if (latestProject.tasks?.length > 0) {
+            const sortedTasks = [...latestProject.tasks].sort((a, b) =>
+              new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+            );
+            const latestTask = sortedTasks[0];
+            console.log('Latest task selected:', latestTask);
+
+            // Set the selected task and show details
+            setSelectedTask(latestTask);
+            setShowTaskDetails(true);
+          } else {
+            console.log('No tasks available in the latest project');
+            setSelectedTask(null);
+            setShowTaskDetails(false);
+          }
+        }, 0);
+      } catch (error) {
+        console.error('Error processing projects data:', error);
+      }
+    },
+    refetchOnWindowFocus: false,
     enabled: !!user?.id,
   });
 
-
-  console.log(projects)
-  // Handle comment submission
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || !selectedTask?.id) return;
@@ -75,7 +118,6 @@ export default function UserDashboard() {
         taskId: selectedTask.id,
       });
       setComment('');
-      // Refresh task details
       setSelectedTask({ ...selectedTask });
     } catch (error) {
       console.error('Failed to add comment:', error);
@@ -96,120 +138,137 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <div className="w-64 border-r bg-white dark:bg-gray-800 p-4">
-        <h2 className="text-lg font-semibold mb-4">My Projects</h2>
-        <ScrollArea className="h-[calc(100vh-120px)]">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
+      <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto">
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">My Projects</h2>
           <div className="space-y-2">
             {projects.map((project) => (
               <div
                 key={project.id}
-                className={`p-3 rounded-lg cursor-pointer ${selectedProject?.id === project.id
-                  ? 'bg-blue-50 dark:bg-blue-900/30'
+                className={`p-3 rounded-md cursor-pointer transition-colors ${selectedProject?.id === project.id
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 onClick={() => setSelectedProject(project)}
               >
                 <h3 className="font-medium">{project.name}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                  {project.description || 'No description'}
+                  {project.tasks?.length || 0} tasks
                 </p>
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {selectedProject && (
-          <div className="flex-1 overflow-hidden">
-            <div className="h-full flex">
-              {/* Task Board */}
-              <div className={`${selectedTask ? 'w-2/3' : 'w-full'} p-4`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white dark:bg-gray-800 shadow-sm z-10 sticky top-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {selectedProject?.name || 'Dashboard'}
+            </h1>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full flex">
+            {/* Left side - Task List */}
+            <div className={`${showTaskDetails ? 'w-1/2' : 'w-full'} border-r border-gray-200 dark:border-gray-700 overflow-y-auto`}>
+              {isLoading ? (
+                <div className="p-6">Loading projects and tasks...</div>
+              ) : projects.length > 0 ? (
                 <UserTaskList
-                  projectId={selectedProject.id}
-                  onTaskSelect={setSelectedTask}
+                  projectId={selectedProject?.id || ''}
+                  onTaskSelect={(task) => {
+                    console.log('Task selected:', task); // Debug log
+                    setSelectedTask(task);
+                    setShowTaskDetails(true);
+                  }}
+                  selectedTaskId={selectedTask?.id}
+                  key={selectedProject?.id} // Add key to force re-render when project changes
                 />
-              </div>
-
-              {/* Task Details Panel */}
-              {selectedTask && (
-                <div className="w-1/3 border-l bg-white dark:bg-gray-800 h-full flex flex-col">
-                  <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="font-semibold">Task Details</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTask(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <ScrollArea className="flex-1 p-4">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm text-gray-500 mb-1">Title</h4>
-                        <p className="font-medium">{selectedTask.title}</p>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm text-gray-500 mb-1">Status</h4>
-                        <Badge variant="outline" className="capitalize">
-                          {selectedTask.status?.toLowerCase().replace('_', ' ')}
-                        </Badge>
-                      </div>
-
-                      {/* Comments Section */}
-                      <div className="mt-6">
-                        <h4 className="text-sm font-medium mb-2">Comments</h4>
-                        <div className="space-y-4">
-                          <form onSubmit={handleAddComment} className="space-y-2">
-                            <Textarea
-                              placeholder="Add a comment..."
-                              value={comment}
-                              onChange={(e) => setComment(e.target.value)}
-                            />
-                            <div className="flex justify-end">
-                              <Button type="submit" size="sm">
-                                Comment
-                              </Button>
-                            </div>
-                          </form>
-
-                          <div className="space-y-4 mt-4">
-                            {selectedTask.comments?.map((comment: any) => (
-                              <div key={comment.id} className="flex gap-3">
-                                <Avatar className="h-8 w-8 mt-1">
-                                  <AvatarFallback>
-                                    {comment.user?.firstName?.[0] || comment.user?.email?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">
-                                      {comment.user?.firstName || comment.user?.email?.split('@')[0]}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {format(new Date(comment.createdAt), 'MMM d, yyyy')}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm mt-1">{comment.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </ScrollArea>
+              ) : (
+                <div className="p-6 text-center text-gray-500">
+                  No projects found. You don't have access to any projects yet.
                 </div>
               )}
             </div>
+
+            {/* Right side - Task Details & Comments */}
+            {selectedTask && showTaskDetails && (
+              <div className="w-1/2 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-xl font-bold">{selectedTask.title}</h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowTaskDetails(false)}
+                      className="text-gray-400 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  {/* Task status */}
+                  <div className="mb-6">
+                    <h4 className="text-sm text-gray-500 mb-1">Status</h4>
+                    <Badge variant="outline" className="capitalize">
+                      {selectedTask.status?.toLowerCase().replace('_', ' ')}
+                    </Badge>
+                  </div>
+
+                  {/* Comments Section */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Comments</h4>
+                    <div className="space-y-4">
+                      <form onSubmit={handleAddComment} className="space-y-2">
+                        <Textarea
+                          placeholder="Add a comment..."
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                        />
+                        <div className="flex justify-end">
+                          <Button type="submit" size="sm">
+                            Comment
+                          </Button>
+                        </div>
+                      </form>
+
+                      <div className="space-y-4 mt-4">
+                        {selectedTask.comments?.length > 0 ? (
+                          selectedTask.comments.map((comment: any) => (
+                            <div key={comment.id} className="flex gap-3">
+                              <Avatar className="h-8 w-8 mt-1">
+                                <AvatarFallback>
+                                  {comment.user?.firstName?.[0] || comment.user?.email?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm">
+                                    {comment.user?.firstName || comment.user?.email.split('@')[0]}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {format(new Date(comment.createdAt), 'MMM d, yyyy')}
+                                  </span>
+                                </div>
+                                <p className="text-sm mt-1">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">No comments yet</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </main>
       </div>
     </div>
   );
