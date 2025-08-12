@@ -81,11 +81,13 @@ const TaskCard = ({
   isSelected
 }: {
   task: Task;
-  onStatusChange: (taskId: string, status: string) => void;
+  onStatusChange: (taskId: string, status: string) => Promise<void>;
   onTaskSelect: (task: Task) => void;
   isSelected: boolean;
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
+
   const statusColors = {
     TODO: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
     IN_PROGRESS: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
@@ -94,36 +96,73 @@ const TaskCard = ({
   };
 
   const handleStatusClick = async (newStatus: string) => {
-    if (task.status === newStatus) return;
+    if (task.status === newStatus || isUpdating) return;
 
     try {
       setIsUpdating(true);
       await onStatusChange(task.id, newStatus);
+
+      // Show visual feedback
+      setJustUpdated(true);
+      setTimeout(() => setJustUpdated(false), 1000); // Reset after animation
+
     } finally {
       setIsUpdating(false);
     }
   };
 
+  // Status button component with animation
+  const StatusButton = ({ status }: { status: string }) => {
+    const isActive = task.status === status;
+    const isUpdatingThisStatus = isUpdating && isActive;
+
+    return (
+      <button
+        key={status}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleStatusClick(status);
+        }}
+        disabled={isUpdating}
+        className={cn(
+          'px-2 py-1 text-xs font-medium rounded-md transition-all duration-200',
+          statusColors[status],
+          isActive ? 'ring-2 ring-offset-1 ring-blue-500 scale-110' : 'opacity-80 hover:opacity-100',
+          justUpdated && isActive && 'animate-pulse scale-110',
+          isUpdatingThisStatus && 'opacity-70 cursor-wait',
+          'flex items-center gap-1 min-w-[70px] justify-center'
+        )}
+      >
+        {isUpdatingThisStatus ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <>
+            {status === 'TODO' && <Clock className="h-3 w-3" />}
+            {status === 'IN_PROGRESS' && <Loader2 className="h-3 w-3 animate-spin" />}
+            {status === 'REVIEW' && <AlertCircle className="h-3 w-3" />}
+            {status === 'DONE' && <CheckCircle className="h-3 w-3" />}
+            <span>{status.replace('_', ' ')}</span>
+          </>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div
-      className={`border rounded-lg overflow-hidden transition-all ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
+      className={cn(
+        'border rounded-lg overflow-hidden transition-all',
+        isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-md',
+        justUpdated && 'ring-2 ring-blue-400',
+        'relative'
+      )}
       onClick={() => onTaskSelect(task)}
     >
       {/* Status Bar */}
-      <div className="px-4 py-2 border-b">
+      <div className="px-4 py-2 border-b bg-gray-50">
         <div className="flex items-center gap-2">
-          {Object.entries(statusColors).map(([status, className]) => (
-            <button
-              key={status}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStatusClick(status);
-              }}
-              disabled={isUpdating}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${status === task.status ? 'ring-2 ring-offset-1 ring-blue-500' : 'opacity-70 hover:opacity-100'} ${className}`}
-            >
-              {status.replace('_', ' ')}
-            </button>
+          {Object.keys(statusColors).map((status) => (
+            <StatusButton key={status} status={status} />
           ))}
         </div>
       </div>
