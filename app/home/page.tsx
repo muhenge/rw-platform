@@ -314,72 +314,44 @@ export default function HomePage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MessageSquare className="h-4 w-4" />
-                          {project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)}
-                          <ChevronDown className="h-4 w-4" />
+                          {project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0) > 0 && (
+                            <span className="ml-1 text-xs">{project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)}</span>
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-96 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                      >
+                      <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto" align="end">
                         <div className="p-2">
-                          <h4 className="text-sm font-medium mb-2">
-                            Latest Comments ({project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)})
-                          </h4>
-                          <div className="space-y-3">
-                            {project.tasks.flatMap(task => {
-                              // Get the latest comment (first in the array since they're ordered by createdAt desc)
-                              const latestComment = task.comments?.[0];
-                              if (!latestComment) return null;
-
-                              return (
-                                <div key={`${task.id}-${latestComment.id}`} className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                          <h4 className="text-sm font-medium mb-2">Comments ({project.tasks.reduce((acc, task) => acc + (task.comments?.length || 0), 0)})</h4>
+                          {project.tasks.flatMap(task => task.comments).length > 0 ? (
+                            <div className="space-y-3">
+                              {project.tasks.flatMap(task => task.comments).map((comment) => (
+                                <div key={comment.id} className="text-sm">
                                   <div className="flex items-start gap-2">
-                                    <Avatar className="h-8 w-8 flex-shrink-0">
-                                      <AvatarImage
-                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${latestComment.user.firstName}+${latestComment.user.lastName}`}
-                                      />
+                                    <Avatar className="h-8 w-8 mt-0.5">
                                       <AvatarFallback>
-                                        {latestComment.user.firstName?.[0]}{latestComment.user.lastName?.[0]}
+                                        {comment.user?.firstName?.[0] || comment.user?.email?.[0]?.toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-baseline justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <p className="text-sm font-medium">
-                                            {latestComment.user.firstName} {latestComment.user.lastName}
-                                          </p>
-                                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            {format(new Date(latestComment.createdAt), 'MMM d, yyyy')}
-                                          </span>
-                                        </div>
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
-                                          {task.title || 'Untitled Task'}
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">
+                                          {comment.user?.firstName || comment.user?.email?.split('@')[0]}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {format(new Date(comment.createdAt), 'MMM d, yyyy')}
                                         </span>
                                       </div>
-                                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 break-words">
-                                        {latestComment.content}
-                                      </p>
-                                      {task.comments.length > 1 && (
-                                        <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                                          +{task.comments.length - 1} more comment{task.comments.length > 2 ? 's' : ''}
-                                        </p>
-                                      )}
+                                      <p className="mt-0.5">{comment.content}</p>
                                     </div>
                                   </div>
                                 </div>
-                              );
-                            })}
-                            {project.tasks.every(task => !task.comments?.length) && (
-                              <div className="text-center py-4">
-                                <MessageSquare className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500" />
-                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No comments yet</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add a comment to get started</p>
-                              </div>
-                            )}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No comments yet</p>
+                          )}
                         </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
