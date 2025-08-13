@@ -523,7 +523,7 @@ export function ProjectForm({
 
                 return (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Client</FormLabel>
+                    <FormLabel>Lead</FormLabel>
                     <Popover open={open} onOpenChange={setOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -537,7 +537,7 @@ export function ProjectForm({
                           >
                             {field.value
                               ? clients.find((client) => client.id === field.value)?.name
-                              : "Select client..."}
+                              : "Select project Lead  ..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -547,7 +547,7 @@ export function ProjectForm({
                           <div className="flex items-center border-b px-3">
                             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                             <input
-                              placeholder="Search clients..."
+                              placeholder="Search project Leads..."
                               className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                               value={clientSearch}
                               onChange={(e) => setClientSearch(e.target.value)}
@@ -561,7 +561,7 @@ export function ProjectForm({
                           </div>
                           <CommandEmpty>
                             <div className="p-2 text-center text-sm">
-                              No client found. Press Enter to add "{clientSearch}" as a new client.
+                              No Lead found. Press Enter to add "{clientSearch}" as a new Lead.
                             </div>
                           </CommandEmpty>
                           <CommandGroup className="max-h-[200px] overflow-y-auto">
@@ -591,7 +591,7 @@ export function ProjectForm({
                                 onSelect={handleAddClient}
                               >
                                 <PlusCircle className="mr-2 h-4 w-4" />
-                                Add "{clientSearch}" as new client
+                                Add "{clientSearch}" as new Lead
                               </CommandItem>
                             )}
                           </CommandGroup>

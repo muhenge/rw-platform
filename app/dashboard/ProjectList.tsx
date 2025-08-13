@@ -284,7 +284,7 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
                   <p className="mb-2">{project.description}</p>
                 )}
                 <div className="flex items-center space-x-4 text-xs">
-                  <span>Client: {project.clientName || 'No client'}</span>
+                  <span>Client: {project.clientName || 'No Lead'}</span>
                   <span>•</span>
                   <span>Members: {project.teamMembers?.length || 0}</span>
                   <span>•</span>

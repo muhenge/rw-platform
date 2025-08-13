@@ -291,9 +291,9 @@ export default function HomePage() {
           <TableHeader className="bg-gray-100 dark:bg-gray-800">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[300px] font-medium text-gray-900 dark:text-gray-100">Project</TableHead>
-              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Client</TableHead>
-              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Status</TableHead>
-              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Progress</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Lead</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Project Status</TableHead>
+              <TableHead className="font-medium text-gray-900 dark:text-gray-100">Tasks Progress</TableHead>
               <TableHead className="font-medium text-gray-900 dark:text-gray-100">Tasks</TableHead>
               <TableHead className="font-medium text-gray-900 dark:text-gray-100">Comments</TableHead>
             </TableRow>
