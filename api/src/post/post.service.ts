@@ -8,6 +8,7 @@ import { DatabaseService } from '../database/database.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import { Prisma, PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -683,6 +684,124 @@ export class PostService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async updateProject(
+    userId: string,
+    projectId: string,
+    dto: UpdateProjectDto,
+  ) {
+    // 1. Check if project exists and user has permission
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // 2. Check if user is an admin
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can update projects');
+    }
+
+    // 3. Validate client if clientId is being updated
+    if (dto.clientId) {
+      const client = await this.prisma.client.findUnique({
+        where: { id: dto.clientId },
+      });
+      if (!client) {
+        throw new NotFoundException('Client not found');
+      }
+    }
+
+    // 4. Validate member IDs if being updated
+    let membersToAssign = dto.memberIds || [];
+    if (membersToAssign.length > 0) {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: membersToAssign } },
+      });
+      if (users.length !== membersToAssign.length) {
+        throw new NotFoundException('One or more assigned users not found');
+      }
+    }
+
+    // 5. Prepare update data
+    const updateData: any = {
+      name: dto.name,
+      description: dto.description,
+      clientId: dto.clientId,
+      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
+      budget: dto.budget,
+    };
+
+    // 6. Update project
+    const updatedProject = await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        ...updateData,
+        ...(membersToAssign.length > 0 && {
+          members: {
+            set: membersToAssign.map((id) => ({ id })),
+          },
+        }),
+      },
+      include: {
+        members: true,
+        client: true,
+      },
+    });
+
+    return updatedProject;
+  }
+
+  async deleteProject(userId: string, projectId: string) {
+    // 1. Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // 2. Check if user is an admin
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can delete projects');
+    }
+
+    // 3. Use a transaction to handle related data
+    return this.prisma.$transaction(async (tx) => {
+      // Delete related tasks and their comments first
+      await tx.comment.deleteMany({
+        where: {
+          task: {
+            projectId: projectId,
+          },
+        },
+      });
+
+      await tx.task.deleteMany({
+        where: {
+          projectId: projectId,
+        },
+      });
+
+      // Finally, delete the project
+      return tx.project.delete({
+        where: { id: projectId },
+      });
+    });
   }
 
   // Comment methods

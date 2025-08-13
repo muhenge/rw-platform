@@ -231,19 +231,12 @@ export function ProjectForm({
   }
   );
 
-  console.log()
-
-  console.log('users', users)
-
   // Cleanup debounce
   useEffect(() => {
     return () => {
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
-
-
-  // update project mutation
 
   const updateProjectMutation = useMutation<ProjectResponse, Error, { id: string; data: z.infer<typeof formSchema> }>({
     mutationFn: async ({ id, data }) => {
@@ -305,19 +298,15 @@ export function ProjectForm({
         description: `${data.name} has been created.`,
       });
 
-      // Call the onSuccess callback if provided
       if (onSuccess) {
         onSuccess(data);
         queryClient.invalidateQueries({ queryKey: ['projects'] });
       }
 
-      // Close the form if it's in a dialog
       if (onCancel) {
         onCancel();
       }
 
-      // Optionally refresh the projects list
-      // queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error) => {
       toast.error('Failed to create project', {
@@ -326,7 +315,6 @@ export function ProjectForm({
     },
   });
 
-  // Update the form's onSubmit handler to handle both create and update
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       if (mode === 'edit' && project) {
@@ -340,7 +328,7 @@ export function ProjectForm({
     }
   };
 
-  // Delete project mutation
+  // Delete project utation
   const deleteProjectMutation = useMutation({
     mutationFn: async (id: string) => {
       try {
@@ -754,14 +742,16 @@ export function ProjectForm({
                     if (onCancel) onCancel();
                     else setOpen(false);
                   }}
+                  disabled={createProjectMutation.isPending || updateProjectMutation.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={createProjectMutation.isPending || updateProjectMutation.isPending}
+                  className="min-w-[120px]"
                 >
-                  {(createProjectMutation.isPending || updateProjectMutation.isPending) ? (
+                  {createProjectMutation.isPending || updateProjectMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
                   {mode === 'edit' ? 'Save Changes' : 'Create Project'}

@@ -18,6 +18,7 @@ import { GetAuthUser } from 'src/auth/decorator';
 import { JwtGuard } from 'src/auth/guards';
 import { User } from '@prisma/client';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
@@ -37,6 +38,34 @@ export class PostController {
   @Post('projects')
   async create(@GetAuthUser() user: User, @Body() data: CreateProjectDto) {
     return this.postService.createProject(user.id, data);
+  }
+
+  @UseGuards(JwtGuard)
+  @Patch('projects/:id')
+  async updateProject(
+    @GetAuthUser() user: User,
+    @Param('id') projectId: string,
+    @Body() data: UpdateProjectDto,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('Project ID is required');
+    }
+
+    return this.postService.updateProject(user.id, projectId, data);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete('projects/:id')
+  async deleteProject(
+    @GetAuthUser() user: User,
+    @Param('id') projectId: string,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('Project ID is required');
+    }
+
+    await this.postService.deleteProject(user.id, projectId);
+    return { message: 'Project deleted successfully' };
   }
 
   @UseGuards(JwtGuard)

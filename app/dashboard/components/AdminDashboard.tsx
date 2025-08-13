@@ -19,8 +19,8 @@ interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'active' | 'completed' | 'on_hold' | 'planning';
-  dueDate: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  endDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,19 +36,22 @@ export default function AdminDashboard({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch projects data
-  const { data: projects = [], isLoading, error } = useQuery<Project[]>({
+  const { data: response = { data: [] }, isLoading, error } = useQuery({
     queryKey: ['admin-projects'],
     queryFn: async () => {
       const { data } = await apiClient.get("/post/projects/all");
-      // Ensure we're working with an array
-      return Array.isArray(data) ? data : [];
+      return data; // The response already has the structure we need
     },
   });
 
+  // Extract projects from response
+  const projects = response?.data || [];
+
+  console.log('Projects data:', projects);
+
   // Calculate stats based on projects data
   const calculateStats = (): Stats[] => {
-    // Add a null check for projects
-    if (!Array.isArray(projects)) {
+    if (!Array.isArray(projects) || projects.length === 0) {
       return [
         { name: "Total Projects", value: 0, trend: 'neutral' },
         { name: "Active Projects", value: 0, trend: 'neutral' },
@@ -58,16 +61,16 @@ export default function AdminDashboard({ user }: { user: any }) {
     }
 
     const totalProjects = projects.length;
-    const activeProjects = projects.filter(p => p.status === 'active').length;
-    const completedProjects = projects.filter(p => p.status === 'completed').length;
+    const activeProjects = projects.filter(p => p.status === 'TODO' || p.status === 'IN_PROGRESS').length;
+    const completedProjects = projects.filter(p => p.status === 'DONE').length;
     const upcomingDeadlines = projects.filter(p =>
-      p.dueDate &&
-      new Date(p.dueDate) > new Date() &&
-      new Date(p.dueDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      p.endDate &&
+      new Date(p.endDate) > new Date() &&
+      new Date(p.endDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     ).length;
 
     return [
-      { name: "Total Projects", value: totalProjects, trend: 'up' },
+      { name: "Total Projects", value: totalProjects, trend: totalProjects > 0 ? 'up' : 'neutral' },
       { name: "Active Projects", value: activeProjects, trend: 'neutral' },
       { name: "Completed Projects", value: completedProjects, trend: 'up' },
       { name: "Upcoming Deadlines", value: upcomingDeadlines, trend: 'down' },
