@@ -7,40 +7,40 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // ===== Seed Clients =====
-  // const clients = [
-  //   {
-  //     name: 'National Forestry Agency',
-  //     description: 'Government agency overseeing forestry projects.',
-  //     address: '123 Green Street, Kigali',
-  //     phone: '+250788123456',
-  //     email: 'contact@nfa.gov.rw',
-  //     website: 'https://nfa.gov.rw',
-  //   },
-  //   {
-  //     name: 'EcoWood Ltd',
-  //     description: 'Private company specializing in sustainable wood products.',
-  //     address: '45 Industrial Zone, Huye',
-  //     phone: '+250788654321',
-  //     email: 'info@ecowood.com',
-  //     website: 'https://ecowood.com',
-  //   },
-  //   {
-  //     name: 'GreenFuture NGO',
-  //     description: 'Non-profit promoting environmental conservation.',
-  //     address: '89 Conservation Ave, Musanze',
-  //     phone: '+250788999888',
-  //     email: 'hello@greenfuture.org',
-  //     website: 'https://greenfuture.org',
-  //   },
-  // ];
+  const clients = [
+    {
+      name: 'National Forestry Agency',
+      description: 'Government agency overseeing forestry projects.',
+      address: '123 Green Street, Kigali',
+      phone: '+250788123456',
+      email: 'contact@nfa.gov.rw',
+      website: 'https://nfa.gov.rw',
+    },
+    {
+      name: 'EcoWood Ltd',
+      description: 'Private company specializing in sustainable wood products.',
+      address: '45 Industrial Zone, Huye',
+      phone: '+250788654321',
+      email: 'info@ecowood.com',
+      website: 'https://ecowood.com',
+    },
+    {
+      name: 'GreenFuture NGO',
+      description: 'Non-profit promoting environmental conservation.',
+      address: '89 Conservation Ave, Musanze',
+      phone: '+250788999888',
+      email: 'hello@greenfuture.org',
+      website: 'https://greenfuture.org',
+    },
+  ];
 
-  // for (const client of clients) {
-  //   await prisma.client.upsert({
-  //     where: { email: client.email },
-  //     update: client,
-  //     create: client,
-  //   });
-  // }
+  for (const client of clients) {
+    await prisma.client.upsert({
+      where: { email: client.email },
+      update: client,
+      create: client,
+    });
+  }
 
   // ===== Seed Users (Members) =====
   const passwordHash = await bcrypt.hash('Password123!', 10);

@@ -228,6 +228,7 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
             onSuccess={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}
             initialClients={initialClients}
             initialUsers={initialUsers}
+            showTrigger={false}
           />
         </div>
       </div>

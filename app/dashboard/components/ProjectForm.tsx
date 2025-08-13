@@ -80,7 +80,8 @@ interface ProjectFormProps {
   project?: ProjectResponse | null; // Add project prop for edit mode
   onSuccess?: (project: ProjectResponse) => void;
   onCancel?: () => void;
-  mode?: 'create' | 'edit'; // Add mode prop to differentiate between create and edit
+  mode?: 'create' | 'edit';
+  showTrigger?: boolean; // Add mode prop to differentiate between create and edit
 }
 
 // Form Schema
@@ -101,7 +102,8 @@ interface ProjectFormProps {
   project?: ProjectResponse | null; // Add project prop for edit mode
   onSuccess?: (project: ProjectResponse) => void;
   onCancel?: () => void;
-  mode?: 'create' | 'edit'; // Add mode prop to differentiate between create and edit
+  mode?: 'create' | 'edit';
+  showTrigger?: boolean;
 }
 
 export function ProjectForm({
@@ -111,13 +113,12 @@ export function ProjectForm({
   onSuccess,
   onCancel,
   mode = 'create',
+  showTrigger = true,
 }: ProjectFormProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
-  const [addClientOpen, setAddClientOpen] = useState(false);
-  const [userSearch, setUserSearch] = useState("");
   const queryClient = useQueryClient();
 
   // Form setup with default values from project if in edit mode
@@ -176,7 +177,6 @@ export function ProjectForm({
     onSuccess: (createdClient) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
 
-      setAddClientOpen(false);
       setClientSearch('');
 
       form.setValue('clientId', createdClient.id);
@@ -209,7 +209,6 @@ export function ProjectForm({
     //keepPreviousData: true,
   });
 
-  console.log(clients)
 
   // Debounced search
   const debouncedSearch = useCallback(
@@ -377,19 +376,21 @@ export function ProjectForm({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {mode === 'create' ? (
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
-        </DialogTrigger>
-      ) : (
-        <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 px-2">
-            <Pencil className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
+      {showTrigger && ( // Only show the trigger if showTrigger is true
+        mode === 'create' ? (
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
+          </DialogTrigger>
+        ) : (
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 px-2">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+        )
       )}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
@@ -503,6 +504,31 @@ export function ProjectForm({
                   );
                 }, [clients, clientSearch]);
 
+                // Handle adding a new client
+                const handleAddClient = async () => {
+                  if (!clientSearch.trim()) return;
+
+                  try {
+                    const response = await apiClient.post('/user/clients', {
+                      name: clientSearch.trim()
+                    });
+                    const newClient = response.data;
+
+                    // Update the form with the new client
+                    form.setValue("clientId", newClient.id);
+                    setClientSearch("");
+                    setOpen(false);
+
+                    // Invalidate clients query to refetch the list
+                    queryClient.invalidateQueries({ queryKey: ['clients'] });
+
+                    toast.success(`Client "${newClient.name}" added successfully`);
+                  } catch (error) {
+                    console.error('Error adding client:', error);
+                    toast.error('Failed to add client. Please try again.');
+                  }
+                };
+
                 // Check if we should show the "Add new client" option
                 const showAddClient = clientSearch &&
                   !filteredClients.some(c => c.name.toLowerCase() === clientSearch.toLowerCase());
@@ -530,14 +556,24 @@ export function ProjectForm({
                       </PopoverTrigger>
                       <PopoverContent className="w-[300px] p-0">
                         <Command>
-                          <CommandInput
-                            placeholder="Search clients..."
-                            value={clientSearch}
-                            onValueChange={setClientSearch}
-                          />
+                          <div className="flex items-center border-b px-3">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                              placeholder="Search clients..."
+                              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                              value={clientSearch}
+                              onChange={(e) => setClientSearch(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && showAddClient) {
+                                  e.preventDefault();
+                                  handleAddClient();
+                                }
+                              }}
+                            />
+                          </div>
                           <CommandEmpty>
                             <div className="p-2 text-center text-sm">
-                              No client found.
+                              No client found. Press Enter to add "{clientSearch}" as a new client.
                             </div>
                           </CommandEmpty>
                           <CommandGroup className="max-h-[200px] overflow-y-auto">
@@ -564,10 +600,7 @@ export function ProjectForm({
                             {showAddClient && (
                               <CommandItem
                                 className="text-primary font-medium cursor-pointer"
-                                onSelect={() => {
-                                  setAddClientOpen(true);
-                                  setOpen(false);
-                                }}
+                                onSelect={handleAddClient}
                               >
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add "{clientSearch}" as new client
@@ -582,44 +615,6 @@ export function ProjectForm({
                 );
               }}
             />
-
-            {/* Add New Client Dialog */}
-            <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Client</DialogTitle>
-                </DialogHeader>
-                <form
-                  onSubmit={addClientForm.handleSubmit((data) =>
-                    addClientMutation.mutate(data)
-                  )}
-                >
-                  <FormItem>
-                    <FormLabel>Client Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...addClientForm.register("name")}
-                        placeholder="Enter client name"
-                      />
-                    </FormControl>
-                    <FormMessage>{addClientForm.formState.errors.name?.message}</FormMessage>
-                  </FormItem>
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAddClientOpen(false)}
-                      disabled={addClientMutation.isLoading}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={addClientMutation.isLoading}>
-                      {addClientMutation.isLoading ? "Adding..." : "Add Client"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
 
             {/* Team Members */}
             <FormField
