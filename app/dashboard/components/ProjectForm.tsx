@@ -260,6 +260,20 @@ export function ProjectForm({
         description: `${data.name} has been updated.`,
       });
 
+      // Invalidate projects query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+
+      // Reset the form
+      form.reset({
+        name: '',
+        description: '',
+        startDate: undefined,
+        endDate: undefined,
+        budget: undefined,
+        clientId: '',
+        memberIds: [],
+      });
+
       if (onSuccess) {
         onSuccess(data);
         queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -298,15 +312,28 @@ export function ProjectForm({
         description: `${data.name} has been created.`,
       });
 
+      // Invalidate both queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+
+      // Reset the form
+      form.reset({
+        name: '',
+        description: '',
+        startDate: undefined,
+        endDate: undefined,
+        budget: undefined,
+        clientId: '',
+        memberIds: [],
+      });
+
       if (onSuccess) {
         onSuccess(data);
-        queryClient.invalidateQueries({ queryKey: ['projects'] });
       }
 
       if (onCancel) {
         onCancel();
       }
-
     },
     onError: (error) => {
       toast.error('Failed to create project', {

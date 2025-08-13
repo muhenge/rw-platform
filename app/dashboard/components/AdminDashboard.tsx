@@ -42,6 +42,7 @@ export default function AdminDashboard({ user }: { user: any }) {
       const { data } = await apiClient.get("/post/projects/all");
       return data; // The response already has the structure we need
     },
+    refetchOnWindowFocus: true,
   });
 
   // Extract projects from response
@@ -87,21 +88,6 @@ export default function AdminDashboard({ user }: { user: any }) {
   return (
     <ProtectedRoute>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-        <header className="bg-white dark:bg-gray-800 shadow transition-colors">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-            <div className="flex items-center space-x-4">
-              <ThemeToggle />
-              <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-200 font-medium">
-                {user.firstName?.[0] || user.email[0]}
-              </div>
-              <div className="ml-2 text-sm text-left">
-                <div className="font-medium text-gray-700 dark:text-gray-200">{user.firstName} {user.lastName}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role.toLowerCase()}</div>
-              </div>
-            </div>
-          </div>
-        </header>
 
         <section className="max-w-7xl mx-auto px-4 py-6">
           {/* Stats Cards */}
