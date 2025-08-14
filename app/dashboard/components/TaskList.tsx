@@ -69,6 +69,8 @@ export default function TaskList({ initialProjectId, projectMembers = [] }: Task
       const response = await apiClient.get(`/post/tasks?${params.toString()}`);
       return response.data;
     },
+    refetchOnWindowFocus: true,
+    enabled: !!user?.id,
   });
 
   const tasks = data?.data || [];
