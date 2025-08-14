@@ -804,6 +804,39 @@ export class PostService {
     });
   }
 
+  async findOneProject(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        client: true,
+        members: true,
+        tasks: {
+          include: {
+            assignees: true,
+            createdBy: true,
+            comments: {
+              include: {
+                user: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return project;
+  }
+
   // Comment methods
   async createComment(userId: string, taskId: string, content: string) {
     // Verify task exists

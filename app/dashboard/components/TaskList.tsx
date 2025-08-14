@@ -516,9 +516,11 @@ export default function TaskList({ initialProjectId, projectMembers = [] }: Task
                     )}
                   >
                     <div className="h-6 w-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs">
-                      {user.firstName[0]}{user.lastName?.[0]}
+                      {user?.firstName?.[0]?.toUpperCase() || ''}{user?.lastName?.[0]?.toUpperCase() || '' || '?'}
                     </div>
-                    <span>{user.firstName} {user.lastName}</span>
+                    <span>
+                      {user?.firstName || 'Unknown'} {user?.lastName || ''}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -649,9 +651,11 @@ export default function TaskList({ initialProjectId, projectMembers = [] }: Task
                         )}
                       >
                         <div className="h-6 w-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs">
-                          {user.firstName[0]}{user.lastName?.[0]}
+                          {user?.firstName?.[0]?.toUpperCase() || ''}{user?.lastName?.[0]?.toUpperCase() || '' || '?'}
                         </div>
-                        <span>{user.firstName} {user.lastName}</span>
+                        <span>
+                          {user?.firstName || 'Unknown'} {user?.lastName || ''}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -737,9 +741,11 @@ export default function TaskList({ initialProjectId, projectMembers = [] }: Task
                           className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm"
                         >
                           <div className="h-6 w-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs">
-                            {user.firstName[0]}{user.lastName?.[0]}
+                            {user?.firstName?.[0]?.toUpperCase() || ''}{user?.lastName?.[0]?.toUpperCase() || '' || '?'}
                           </div>
-                          <span>{user.firstName} {user.lastName}</span>
+                          <span>
+                            {user?.firstName || 'Unknown'} {user?.lastName || ''}
+                          </span>
                         </div>
                       ))}
                     </div>
