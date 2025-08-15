@@ -70,7 +70,7 @@ export default function TaskList({ initialProjectId, projectMembers = [] }: Task
       return response.data;
     },
     refetchOnWindowFocus: true,
-    enabled: !!user?.id,
+    enabled: !!filters.projectId, // Only enable the query if we have a projectId
   });
 
   const tasks = data?.data || [];
