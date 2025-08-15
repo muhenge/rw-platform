@@ -237,6 +237,34 @@ export class PostController {
     return this.postService.deleteTask(user.id, taskId);
   }
 
+  @UseGuards(JwtGuard)
+  @Get('projects/:id')
+  async findOneProject(
+    @GetAuthUser() user: User,
+    @Param('id') projectId: string,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('Project ID is required');
+    }
+
+    try {
+      const project = await this.postService.findOneProject(projectId);
+
+      // Check if user has access to this project
+      const hasAccess = project.members.some((member) => member.id === user.id);
+      if (!hasAccess && user.role !== 'ADMIN') {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+
+      return project;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
+      }
+      throw error;
+    }
+  }
+
   // Comment endpoints
   @UseGuards(JwtGuard)
   @Post('comments')

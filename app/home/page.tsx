@@ -186,6 +186,12 @@ export default function HomePage() {
       })));
     },
     enabled: isAuthenticated,
+    refetchOnWindowFocus: true,  // Refetch when window regains focus
+    refetchInterval: 30000,      // Refetch every 30 seconds
+    refetchIntervalInBackground: false, // Only refetch when tab is active
+    staleTime: 10000,            // Data is fresh for 10 seconds
+    cacheTime: 5 * 60 * 1000,    // Keep unused data in cache for 5 minutes
+    enabled: isAuthenticated,
     keepPreviousData: true,
   });
 

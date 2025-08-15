@@ -30,6 +30,7 @@ interface Project {
   clientId: string;
   clientName?: string;
   teamMembers?: User[];
+  members?: User[];
 }
 
 interface Task {
@@ -64,31 +65,63 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
     }
   });
 
+  console.log(projects)
+
+  const { data: projectData } = useQuery({
+    queryKey: ['project', activeProjectId], // Use activeProjectId from component state
+    queryFn: async () => {
+      if (!activeProjectId) return null;
+      const response = await apiClient.get(`/post/projects/${activeProjectId}`);
+      return response.data;
+    },
+    enabled: !!activeProjectId, // Only run the query when activeProjectId exists
+  });
+
+  // In your component
+
   // Add task mutation
   const addTaskMutation = useMutation({
     mutationFn: async ({ projectId, taskData }: { projectId: string; taskData: Task }) => {
-      const response = await apiClient.post(`/post/tasks/${projectId}`, {
+      // Get project members and filter valid assignee IDs
+      const projectMembers = projectData?.members || [];
+      const validAssigneeIds = taskData.assigneeIds?.filter(assigneeId =>
+        projectMembers.some(member => member.id === assigneeId)
+      ) || [];
+
+      // If no valid assignees but project has members, assign the current user by default
+      const defaultAssigneeIds = validAssigneeIds.length === 0 && projectMembers.length > 0
+        ? [projectMembers[0].id] // Assign first member by default, or use your logic
+        : validAssigneeIds;
+
+      const requestBody = {
         title: taskData.title,
         projectId,
         description: taskData.description,
-        dueDate: taskData.dueDate,
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString() : undefined,
         priority: taskData.priority,
-        assigneeIds: taskData.assigneeIds || [],
-      });
-      return response.data;
+        status: taskData.status || 'TODO',
+        assigneeIds: defaultAssigneeIds, // Use the filtered assignee IDs
+      };
+
+      try {
+        const response = await apiClient.post(`/post/tasks/${projectId}`, requestBody);
+        return response.data;
+      } catch (error) {
+        console.error('Error creating task:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success('Task added successfully');
       setNewTask({});
       setTaskDetails({});
-      setActiveProjectId(null);
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      // Invalidate and refetch the tasks query to update the UI
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error: any) => {
-      toast.error('Failed to add task', {
-        description: error.response?.data?.message || error.message,
-      });
-    },
+    onError: (error) => {
+      toast.error('Failed to create task');
+      console.error('Task creation error:', error);
+    }
   });
 
   // Delete task mutation
@@ -286,7 +319,7 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
                 <div className="flex items-center space-x-4 text-xs">
                   <span>Client: {project.clientName || 'No Lead'}</span>
                   <span>•</span>
-                  <span>Members: {project.teamMembers?.length || 0}</span>
+                  <span>Members: {(project.members || project.teamMembers)?.length || 0}</span>
                   <span>•</span>
                   <span>Created: {new Date(project.startDate).toLocaleDateString()}</span>
                 </div>
@@ -295,10 +328,11 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
               {/* Task list for this project */}
               <TaskList
                 initialProjectId={project.id}
-                projectMembers={project.teamMembers?.map((m: User) => ({
+                projectMembers={(project.members || project.teamMembers)?.map((m: any) => ({
                   id: m.id,
-                  name: m.name,
-                  email: m.email
+                  firstName: m.firstName || m.name?.split(' ')[0] || 'User',
+                  lastName: m.lastName || m.name?.split(' ').slice(1).join(' ') || '',
+                  email: m.email || ''
                 })) || []}
               />
 
