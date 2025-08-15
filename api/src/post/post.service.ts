@@ -128,60 +128,54 @@ export class PostService {
   }
 
   async getAllProjects(
-    page: number = 1,
-    limit: number = 10,
-    search: string = '',
-  ) {
-    const skip = (page - 1) * limit;
+  page: number = 1,
+  limit: number = 10,
+  search: string = '',
+) {
+  const skip = (page - 1) * limit;
 
-    const where: Prisma.ProjectWhereInput = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-            { code: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  const where: Prisma.ProjectWhereInput = search
+    ? {
+        OR: [
+          { name: { contains: search } },
+          { description: { contains: search } },
+          { code: { contains: search } },
+        ],
+      }
+    : {};
 
-    const [projects, total] = await Promise.all([
-      this.prisma.project.findMany({
-        where,
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          members: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+  const [projects, total] = await Promise.all([
+    this.prisma.project.findMany({
+      where,
+      include: {
+        client: { select: { id: true, name: true } },
+        members: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      this.prisma.project.count({ where }),
-    ]);
-
-    return {
-      data: projects,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
       },
-    };
-  }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    this.prisma.project.count({ where }),
+  ]);
+
+  return {
+    data: projects,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
 
   async createTask(userId: string, dto: CreateTaskDto) {
     // 1. Verify the project exists and user has access
@@ -552,139 +546,134 @@ export class PostService {
     });
   }
 
-  async getAllProjectsWithProgress({
-    page = 1,
-    limit = 10,
-    search = '',
-    assigneeId,
-    clientId,
-    status,
-  }: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    assigneeId?: string;
-    clientId?: string;
-    status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
-  }) {
-    const skip = (page - 1) * limit;
+async getAllProjectsWithProgress({
+  page = 1,
+  limit = 10,
+  search = '',
+  assigneeId,
+  clientId,
+  status,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  assigneeId?: string;
+  clientId?: string;
+  status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+}) {
+  const skip = (page - 1) * limit;
 
-    // Build the where clause for filtering
-    const where: Prisma.ProjectWhereInput = {
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
-      ...(clientId && { clientId }),
-      ...(assigneeId || status
-        ? {
-            tasks: {
-              ...(assigneeId && {
-                some: { assignees: { some: { id: assigneeId } } },
-              }),
-              ...(status && { some: { status } }),
+  // Build the where clause for filtering
+  const where: Prisma.ProjectWhereInput = {
+    ...(search && {
+      OR: [
+        { name: { contains: search } },       // removed `mode`
+        { description: { contains: search } } // removed `mode`
+      ],
+    }),
+    ...(clientId && { clientId }),
+    ...(assigneeId || status
+      ? {
+          tasks: {
+            ...(assigneeId && {
+              some: { assignees: { some: { id: assigneeId } } },
+            }),
+            ...(status && { some: { status } }),
+          },
+        }
+      : {}),
+  };
+
+  // Get total count for pagination
+  const total = await this.prisma.project.count({ where });
+
+  // Get paginated projects with tasks and related data
+  const projects = await this.prisma.project.findMany({
+    where,
+    include: {
+      tasks: {
+        include: {
+          assignees: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
             },
-          }
-        : {}),
-    };
-
-    // Get total count for pagination
-    const total = await this.prisma.project.count({ where });
-
-    // Get paginated projects with tasks and related data
-    const projects = await this.prisma.project.findMany({
-      where,
-      include: {
-        tasks: {
-          include: {
-            assignees: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            comments: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                  },
+          },
+          comments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
                 },
               },
-              orderBy: {
-                createdAt: 'desc',
-              },
             },
-          },
-          orderBy: {
-            dueDate: 'asc',
-          },
-          ...(status && { where: { status } }),
-        },
-        members: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
+            orderBy: { createdAt: 'desc' },
           },
         },
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+        orderBy: { dueDate: 'asc' },
+        ...(status && { where: { status } }),
+      },
+      members: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
         },
       },
-      orderBy: {
-        updatedAt: 'desc',
+      client: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
       },
-      skip,
-      take: limit,
-    });
+    },
+    orderBy: { updatedAt: 'desc' },
+    skip,
+    take: limit,
+  });
 
-    // Calculate progress for each project
-    const data = projects.map((project) => {
-      const tasks = project.tasks || [];
-      const totalTasks = tasks.length;
-      const completedTasks = tasks.filter(
-        (task) => task.status === 'DONE',
-      ).length;
-      const progress =
-        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-      return {
-        ...project,
-        progress,
-        totalTasks,
-        completedTasks,
-        pendingTasks: totalTasks - completedTasks,
-        tasks: tasks.map((task) => ({
-          ...task,
-          assignee: task.assignees?.[0] || null,
-        })),
-      };
-    });
+  // Calculate progress for each project
+  const data = projects.map((project) => {
+    const tasks = project.tasks || [];
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(
+      (task) => task.status === 'DONE'
+    ).length;
+    const progress =
+      totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      ...project,
+      progress,
+      totalTasks,
+      completedTasks,
+      pendingTasks: totalTasks - completedTasks,
+      tasks: tasks.map((task) => ({
+        ...task,
+        assignee: task.assignees?.[0] || null,
+      })),
     };
-  }
+  });
+
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
 
   async updateProject(
     userId: string,
