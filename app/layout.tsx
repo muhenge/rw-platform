@@ -21,6 +21,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hesed Advocates | Event Management",
   description: "This is https://hesedadvocates.com/ event management platform",
+  // icons: {
+  //   icon: "/icon.png",
+  // },
 };
 
 export default function RootLayout({
