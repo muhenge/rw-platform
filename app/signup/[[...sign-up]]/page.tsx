@@ -92,7 +92,7 @@ function SignUpPageContent() {
         email: formData.email,
         name: `${formData.firstName} ${formData.lastName}`.trim()
       });
-      
+
       // Reset form for next registration
       setFormData({
         firstName: "",
@@ -271,7 +271,7 @@ function SignUpPageContent() {
           </div>
         </form>
 
-        <div className="text-center">
+        {/* <div className="text-center">
           <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
             Already have an account?{' '}
             <Link
@@ -281,7 +281,7 @@ function SignUpPageContent() {
               Sign in
             </Link>
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

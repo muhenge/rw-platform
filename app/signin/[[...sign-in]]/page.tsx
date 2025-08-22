@@ -129,7 +129,7 @@ export default function SignInPage() {
             </button>
           </div>
 
-          <div className="text-center">
+          {/* <div className="text-center">
             <a
               href="/signup"
               className={`font-medium hover:text-indigo-400 ${
@@ -138,7 +138,7 @@ export default function SignInPage() {
             >
               Don't have an account? Sign up
             </a>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>
