@@ -13,6 +13,27 @@ import ProjectList from "../ProjectList";
 import TeamList from "../TeamList";
 import FilesList from "../../signup/FilesList";
 import ThemeToggle from "@/lib/ThemeToggle";
+import { SafeHtml } from "@/components/ui/safe-html";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+// Helper function to truncate text with ellipsis
+const truncateText = (text: string, maxLength: number = 100) => {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+};
+
+// Helper function for consistent text formatting
+const formatText = (text: string = '') => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .split(/(?=[A-Z])|[_\s-]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .trim();
+};
 
 // Types
 interface Project {
@@ -34,6 +55,7 @@ interface Stats {
 
 export default function AdminDashboard({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [viewingDescription, setViewingDescription] = useState<{title: string; description: string} | null>(null);
 
   // Fetch projects data
   const { data: response = { data: [] }, isLoading, error } = useQuery({
@@ -86,8 +108,20 @@ export default function AdminDashboard({ user }: { user: any }) {
     : [];
 
   return (
-    <ProtectedRoute>
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <ProtectedRoute requiredRole="admin">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <main>
+          {/* Description View Modal */}
+          <Dialog open={!!viewingDescription} onOpenChange={(open) => !open && setViewingDescription(null)}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{viewingDescription?.title || 'Project Description'}</DialogTitle>
+              </DialogHeader>
+              <div className="prose dark:prose-invert max-w-none mt-4">
+                <SafeHtml html={viewingDescription?.description || 'No description available.'} />
+              </div>
+            </DialogContent>
+          </Dialog>
 
         <section className="max-w-7xl mx-auto px-4 py-6">
           {/* Stats Cards */}
@@ -135,19 +169,37 @@ export default function AdminDashboard({ user }: { user: any }) {
                     Recent Activity
                   </h3>
                   {isLoading ? (
-                    <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+                    <div className="text-gray-500 dark:text-gray-400">Loading Data...</div>
                   ) : error ? (
-                    <div className="text-red-500">Error loading activity</div>
+                    <div className="text-red-500">Error Loading Activity</div>
                   ) : recentActivity.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">No recent activity to display.</p>
+                    <p className="text-gray-500 dark:text-gray-400">No Recent Activity To Display</p>
                   ) : (
                     <div className="space-y-4">
                       {recentActivity.map((project) => (
                         <div key={project.id} className="flex items-start">
                           <div className="ml-3">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              Project <span className="text-indigo-600 dark:text-indigo-400">{project.name}</span> was updated
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Status changed to <span className="font-medium text-gray-700 dark:text-gray-300">
+                                {formatText(project.status)}
+                              </span>
                             </p>
+                            <div className="mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingDescription({
+                                    title: project.name,
+                                    description: project.description
+                                  });
+                                }}
+                                className="text-xs"
+                              >
+                                View Description
+                              </Button>
+                            </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                             </p>
@@ -200,7 +252,8 @@ export default function AdminDashboard({ user }: { user: any }) {
             </TabsContent>
           </Tabs>
         </section>
-      </main>
+        </main>
+      </div>
     </ProtectedRoute>
   );
 }

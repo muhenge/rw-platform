@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -38,27 +38,27 @@ enum ProjectStatus {
 
 // User model linked with Clerk authentication
 model User {
-  id            String    @id @default(uuid())
+  id                  String      @id @default(uuid())
   //clerkId       String    @unique
-  email         String    @unique
-  firstName     String
-  lastName      String
-  role          Role      @default(USER)
-  phoneNumber   String?
-  avatarUrl     String?
-  isActive      Boolean   @default(true)
-  lastLogin     DateTime?
-  metadata      Json?     // For any additional Clerk user data
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  password      String
-  projects               Project[]    @relation("ProjectMembers")
-  assignedTasks          Task[]       @relation("TaskAssignees")
-  createdTasks           Task[]       @relation("TaskCreator")
-  timeEntries            TimeEntry[]
-  reports                Report[]
-  approvedTimeEntries    TimeEntry[]  @relation("TimeEntryApprover")
-  comments               Comment[]
+  email               String      @unique
+  firstName           String
+  lastName            String
+  role                Role        @default(USER)
+  phoneNumber         String?
+  avatarUrl           String?
+  isActive            Boolean     @default(true)
+  lastLogin           DateTime?
+  metadata            Json? // For any additional Clerk user data
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  password            String
+  projects            Project[]   @relation("ProjectMembers")
+  assignedTasks       Task[]      @relation("TaskAssignees")
+  createdTasks        Task[]      @relation("TaskCreator")
+  timeEntries         TimeEntry[]
+  reports             Report[]
+  approvedTimeEntries TimeEntry[] @relation("TimeEntryApprover")
+  comments            Comment[]
 
   //@@index([clerkId])
   @@index([email])
@@ -72,37 +72,37 @@ model Client {
   description String?
   address     String?
   phone       String?
-  email       String? @unique
+  email       String?  @unique
   website     String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  contacts    Contact[]
-  projects    Project[]
+  contacts Contact[]
+  projects Project[]
 }
 
 // Client contacts
 model Contact {
-  id          String   @id @default(uuid())
-  firstName   String
-  lastName    String
-  email       String
-  phone       String?
-  position    String?
-  isPrimary   Boolean  @default(false)
-  client      Client   @relation(fields: [clientId], references: [id])
-  clientId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  position  String?
+  isPrimary Boolean  @default(false)
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Projects
 model Project {
   id          String        @id @default(uuid())
   name        String
-  description String?
+  description String?       @db.Text
   code        String        @unique
   status      ProjectStatus @default(TODO)
   startDate   DateTime?
@@ -115,7 +115,7 @@ model Project {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  members     User[]        @relation("ProjectMembers")
+  members     User[]      @relation("ProjectMembers")
   tasks       Task[]
   timeEntries TimeEntry[]
   reports     Report[]
@@ -123,24 +123,24 @@ model Project {
 
 // Tasks
 model Task {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Int        @default(2)
-  dueDate     DateTime?
-  //estimatedHours Float?
-  project     Project    @relation(fields: [projectId], references: [id])
-  projectId   String
-  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id])
-  createdById String
-  assignees   User[]     @relation("TaskAssignees")
-  parentTask  Task?      @relation("SubTasks", fields: [parentTaskId], references: [id])
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  status       TaskStatus @default(TODO)
+  priority     Int        @default(2)
+  dueDate      DateTime?
+  // estimatedHours Float?
+  project      Project    @relation(fields: [projectId], references: [id])
+  projectId    String
+  createdBy    User       @relation("TaskCreator", fields: [createdById], references: [id])
+  createdById  String
+  assignees    User[]     @relation("TaskAssignees")
+  parentTask   Task?      @relation("SubTasks", fields: [parentTaskId], references: [id])
   parentTaskId String?
-  subTasks    Task[]     @relation("SubTasks")
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  subTasks     Task[]     @relation("SubTasks")
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // Relations
   timeEntries TimeEntry[]
@@ -149,23 +149,23 @@ model Task {
 
 // Time tracking
 model TimeEntry {
-  id          String   @id @default(uuid())
-  date        DateTime
-  hours       Float
-  description String?
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  task        Task?    @relation(fields: [taskId], references: [id])
-  taskId      String?
-  project     Project  @relation(fields: [projectId], references: [id])
-  projectId   String
-  isBillable  Boolean  @default(true)
-  isApproved  Boolean  @default(false)
-  approvedBy  User?    @relation("TimeEntryApprover", fields: [approvedById], references: [id])
+  id           String    @id @default(uuid())
+  date         DateTime
+  hours        Float
+  description  String?
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  task         Task?     @relation(fields: [taskId], references: [id])
+  taskId       String?
+  project      Project   @relation(fields: [projectId], references: [id])
+  projectId    String
+  isBillable   Boolean   @default(true)
+  isApproved   Boolean   @default(false)
+  approvedBy   User?     @relation("TimeEntryApprover", fields: [approvedById], references: [id])
   approvedById String?
-  approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 // Comments on tasks
@@ -184,7 +184,7 @@ model Comment {
 model Report {
   id          String   @id @default(uuid())
   title       String
-  description String?
+  description String?  @db.Text
   type        String
   content     Json
   createdBy   User     @relation(fields: [createdById], references: [id])

@@ -38,6 +38,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 // Types
 type Client = { id: string; name: string };
 type User = { id: string; firstName: string; lastName: string; email: string };
@@ -435,7 +436,11 @@ export function ProjectForm({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter project description" className="min-h-[100px]" {...field} />
+                    <RichTextEditor 
+                      value={field.value || ''} 
+                      onChange={field.onChange}
+                      placeholder="Enter project description..."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

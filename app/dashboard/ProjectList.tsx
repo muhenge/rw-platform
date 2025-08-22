@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axiosInstance";
 import { useState } from "react";
-import { Plus, Loader2, Trash2 } from "lucide-react";
+import { Plus, Loader2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TaskList from "./components/TaskList";
 import { ProjectForm } from "./components/ProjectForm";
+import { SafeHtml } from "@/components/ui/safe-html";
 
 interface User {
   id: string;
@@ -52,7 +53,7 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
   const [newTask, setNewTask] = useState<{ [key: string]: string }>({});
   const [taskDetails, setTaskDetails] = useState<{ [key: string]: any }>({});
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const [viewingDescription, setViewingDescription] = useState<{title: string; content: string} | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
@@ -254,6 +255,19 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
 
   return (
     <div className="space-y-6">
+      {/* Description View Modal */}
+      <Dialog open={!!viewingDescription} onOpenChange={(open) => !open && setViewingDescription(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              {viewingDescription?.title || 'Project Description'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="prose dark:prose-invert max-w-none mt-4">
+            <SafeHtml html={viewingDescription?.content || 'No description available.'} />
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Workspace</h2>
         <div className="flex items-center space-x-2">
@@ -298,23 +312,41 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
                     </Button>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
-                >
-                  {expandedProject === project.id ? (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
                     <Plus className="h-4 w-4" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                </Button>
+                  </Button>
+                </div>
               </div>
 
               {/* Project details */}
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {project.description && (
-                  <p className="mb-2">{project.description}</p>
+              <div className="text-sm text-gray-600 dark:text-gray-400 px-4">
+                {project.description ? (
+                  <div className="mb-3">
+                    <div className="prose prose-sm dark:prose-invert max-w-none max-h-20 overflow-hidden">
+                      <SafeHtml html={project.description} />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewingDescription({
+                          title: project.name,
+                          content: project.description
+                        });
+                      }}
+                    >
+                      View Full Description
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 italic">No description provided</p>
                 )}
                 <div className="flex items-center space-x-4 text-xs">
                   <span>Client: {project.clientName || 'No Lead'}</span>
@@ -337,7 +369,7 @@ export default function ProjectList({ initialClients = [], initialUsers = [] }: 
               />
 
               {/* Add task form */}
-              {expandedProject === project.id && (
+              {activeProjectId === project.id && (
                 <div className="mt-4">
                   <form
                     onSubmit={(e) => {

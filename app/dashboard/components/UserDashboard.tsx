@@ -12,8 +12,24 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, X } from "lucide-react";
+import { Loader2, MessageSquare, X, FileText } from "lucide-react";
+
+// Helper function to capitalize the first letter of each word
+const capitalize = (str: string) => {
+  if (!str) return '';
+  return str.toLowerCase().split(' ').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
+// Helper to format status text
+const formatStatus = (status: string) => {
+  return status.toLowerCase().split('_').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
 import UserTaskList from "./UserTaskList";
+import { DescriptionModal } from "@/components/ui/description-modal";
 
 type Project = {
   id: string;
@@ -50,6 +66,7 @@ type Comment = {
 };
 
 export default function UserDashboard() {
+  const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const { user } = useAuth();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -62,8 +79,19 @@ export default function UserDashboard() {
       if (!user?.id) return [];
       try {
         const { data } = await apiClient.get(`/post/users/${user.id}/projects?include=tasks&include=comments`);
-        console.log('Fetched projects:', data?.data);
-        return data?.data || [];
+        console.log('Fetched projects:', data);
+
+        // Sort projects by creation date (newest first)
+        const projectsData = Array.isArray(data) ? data : data?.data || [];
+        const sortedProjects = [...projectsData].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        // Select the first project by default if none is selected
+        if (sortedProjects.length > 0 && !selectedProject) {
+          setSelectedProject(sortedProjects[0]);
+        }
+        return sortedProjects;
       } catch (error) {
         console.error('Error fetching projects:', error);
         return [];
@@ -193,9 +221,21 @@ export default function UserDashboard() {
                   }`}
                 onClick={() => setSelectedProject(project)}
               >
-                <h3 className="font-medium">{project.name}</h3>
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium">{project.name ? project.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : ''}</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingProject(project);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    title="View description"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </button>
+                </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                  {project.tasks?.length || 0} tasks
+                  {project._count?.tasks || 0} tasks
                 </p>
               </div>
             ))}
@@ -207,7 +247,7 @@ export default function UserDashboard() {
         <header className="bg-white dark:bg-gray-800 shadow-sm z-10 sticky top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {selectedProject?.name || 'Dashboard'}
+              {selectedProject?.name ? selectedProject.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Dashboard'}
             </h1>
           </div>
         </header>
@@ -237,7 +277,7 @@ export default function UserDashboard() {
               <div className="w-1/2 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-xl font-bold">{selectedTask.title}</h2>
+                    <h2 className="text-xl font-bold">{selectedTask.title ? selectedTask.title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : ''}</h2>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -250,9 +290,9 @@ export default function UserDashboard() {
 
                   {/* Task status */}
                   <div className="mb-6">
-                    <h4 className="text-sm text-gray-500 mb-1">Status</h4>
+                    <span className="text-xs px-2 py-1 rounded-full">{selectedTask.status ? selectedTask.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : ''}</span>
                     <Badge variant="outline" className="capitalize">
-                      {selectedTask.status?.toLowerCase().replace('_', ' ')}
+                      {formatStatus(selectedTask.status)}
                     </Badge>
                   </div>
 
@@ -307,6 +347,13 @@ export default function UserDashboard() {
           </div>
         </main>
       </div>
+
+      <DescriptionModal
+        isOpen={!!viewingProject}
+        onClose={() => setViewingProject(null)}
+        title={viewingProject?.name || 'Project Description'}
+        description={viewingProject?.description || ''}
+      />
     </div>
   );
 }
