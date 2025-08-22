@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/axiosInstance";
 import { useTheme } from "@/lib/ThemeProvider";
 import Link from "next/link";
+import AdminRoute from "@/components/auth/AdminRoute";
 
 interface SignUpFormData {
   firstName: string;
@@ -18,6 +19,7 @@ interface SignUpResponse {
   user: {
     id: string;
     email: string;
+    role: string;
     firstName: string;
     lastName: string;
   };
@@ -25,24 +27,22 @@ interface SignUpResponse {
   token?: string;
 }
 
-export default function SignUpPage() {
-  const { theme } = useTheme();
+function SignUpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
-  const message = searchParams.get('message');
-
+  const { theme } = useTheme();
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: "",
     lastName: "",
-    email: "",
+    email: searchParams?.get("email") || "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [newlyRegisteredUser, setNewlyRegisteredUser] = useState<{email: string, name: string} | null>(null);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,43 +70,39 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setError(null);
+    setIsLoading(true);
 
-    if (!validateForm()) {
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords don't match");
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const { confirmPassword, ...signUpData } = formData;
+      const response = await apiClient.post<SignUpResponse>("/auth/register", {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
 
-      const { data } = await apiClient.post<SignUpResponse>("/auth/register", signUpData);
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-
-        router.push(redirectTo);
-      } else {
-        setSuccess("Account created successfully! Redirecting to login...");
-        setTimeout(() => {
-          router.push(`/signin?message=Account created successfully`);
-        }, 2000);
-      }
-
+      setSuccess(true);
+      setNewlyRegisteredUser({
+        email: formData.email,
+        name: `${formData.firstName} ${formData.lastName}`.trim()
+      });
+      
+      // Reset form for next registration
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
     } catch (err: any) {
-      console.error("Sign up error:", err);
-
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else if (err.response?.status === 409) {
-        setError("An account with this email already exists");
-      } else if (err.response?.status >= 500) {
-        setError("Server error. Please try again later.");
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -124,21 +120,26 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        {message && (
+        {success && newlyRegisteredUser && (
           <div className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800">
-            {message}
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium">User created successfully!</p>
+                <p>{newlyRegisteredUser.name} ({newlyRegisteredUser.email}) has been registered.</p>
+              </div>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="ml-4 px-3 py-1 text-sm bg-white text-indigo-600 border border-indigo-600 rounded hover:bg-indigo-50"
+              >
+                Go to Dashboard
+              </button>
+            </div>
           </div>
         )}
 
         {error && (
           <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800">
-            {success}
           </div>
         )}
 
@@ -251,14 +252,22 @@ export default function SignUpPage() {
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${theme === 'dark' ? 'focus:ring-offset-gray-800' : 'focus:ring-offset-white'
-                } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {isLoading ? 'Creating account...' : 'Sign up'}
-            </button>
+            <div className="flex space-x-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`flex-1 justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isLoading ? 'Creating account...' : 'Create User'}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard')}
+                className="flex-1 justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Back to Dashboard
+              </button>
+            </div>
           </div>
         </form>
 
@@ -275,5 +284,13 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <AdminRoute>
+      <SignUpPageContent />
+    </AdminRoute>
   );
 }

@@ -83,15 +83,17 @@ export default function Navbar() {
           </Link>
 
           {user?.role !== "MANAGER" && (
-            <Link
-              href="/dashboard"
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${pathname.startsWith("/dashboard") ? "text-primary" : "text-muted-foreground"
-                }`}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+            <Link href="/dashboard">
+              <Button
+                variant={pathname === "/dashboard" ? "secondary" : "ghost"}
+                className="flex items-center gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Button>
             </Link>
           )}
+
 
           <Link
             href="/home"
@@ -101,6 +103,17 @@ export default function Navbar() {
             <Home className="h-4 w-4" />
             Home
           </Link>
+          {user?.role === 'ADMIN' && (
+            <Link href="/signup">
+              <Button
+                variant={pathname === "/signup" ? "secondary" : "ghost"}
+                className="flex items-center gap-2"
+              >
+                <UserIcon className="h-4 w-4" />
+                Register User
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-4">

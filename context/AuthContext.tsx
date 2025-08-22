@@ -45,8 +45,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data } = await apiClient.get('/user/me');
       setUser(data);
 
-      // Redirect away from auth pages if logged in
-      if (['/signin', '/signup'].includes(pathname)) {
+      // Only redirect non-admin users away from signup page
+      if (pathname === '/signin') {
+        router.push('/dashboard');
+      }
+      // For signup page, only redirect if user is not an admin
+      if (pathname === '/signup' && data.role !== 'ADMIN') {
         router.push('/dashboard');
       }
     } catch (error) {
