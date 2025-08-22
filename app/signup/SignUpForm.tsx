@@ -91,12 +91,12 @@ export default function SignUpForm() {
             </button>
           </div>
         </form>
-        <div className="text-center text-sm text-gray-600 mt-4">
+        {/* <div className="text-center text-sm text-gray-600 mt-4">
           Already have an account?{" "}
           <Link href="/signin" className="text-indigo-600 hover:underline">
             Sign in
           </Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );

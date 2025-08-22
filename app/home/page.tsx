@@ -233,7 +233,6 @@ export default function HomePage() {
   }
 
 
-  console.log('project ----->', projects)
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -296,7 +295,7 @@ export default function HomePage() {
         <Table>
           <TableHeader className="bg-gray-100 dark:bg-gray-800">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[300px] font-medium text-gray-900 dark:text-gray-100">Project</TableHead>
+              <TableHead className="w-[300px] font-medium text-gray-900 dark:text-gray-100">Project title</TableHead>
               <TableHead className="font-medium text-gray-900 dark:text-gray-100">Lead</TableHead>
               <TableHead className="font-medium text-gray-900 dark:text-gray-100">Project Status</TableHead>
               <TableHead className="font-medium text-gray-900 dark:text-gray-100">Tasks Progress</TableHead>
@@ -313,14 +312,14 @@ export default function HomePage() {
                 >
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-gray-100 sm:pl-6">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                      {/* <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <span className="text-blue-600 dark:text-blue-300 font-medium">
                           {project.name.charAt(0).toUpperCase()}
                         </span>
-                      </div>
+                      </div> */}
                       <div className="ml-4">
                         <div className="font-medium text-gray-900 dark:text-gray-100">{project.name}</div>
-                        <div className="text-gray-500 dark:text-gray-400">{project.code}</div>
+                        {/* <div className="text-gray-500 dark:text-gray-400">{project.code}</div> */}
                       </div>
                     </div>
                   </td>
