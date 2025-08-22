@@ -7,6 +7,7 @@ import ConsultantDashboard from "./components/ConsultantDashboard";
 import UserDashboard from "./components/UserDashboard";
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Loader2 } from "lucide-react";
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -25,7 +26,11 @@ export default function DashboardPage() {
 
   // Show loading state
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+      </div>
+    );
   }
 
   // If not authenticated or manager, this will redirect in the useEffect
