@@ -2,6 +2,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -16,7 +17,11 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+      </div>
+    );
   }
 
   return isAuthenticated ? <>{children}</> : null;
